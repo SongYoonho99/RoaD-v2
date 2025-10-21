@@ -1,0 +1,8 @@
+data/
+docs/
+__pycache__/
+venv/
+.env
+*.txt
+tools/ex.py
+*.pem
