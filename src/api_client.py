@@ -34,6 +34,16 @@ def login(obj, username):
     except:
         obj.controller.show_overframe(response.json().get('message'))
 
+def take_more_word(obj):
+    payload = {'username': obj.username, 'n': obj.word_pointer + obj.dayword - len(obj.today_confirm)}
+    try:
+        URL = f'{base_URL}take_more_word'
+        response = requests.post(URL, json=payload)
+        return response
+    except:
+        obj.controller.show_overframe('Instance Connection Failure')
+        return
+
 def take_category(obj):
     '''단어 카테고리명을 반환하는 함수'''
     try:

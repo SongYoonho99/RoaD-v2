@@ -1,7 +1,7 @@
 import tkinter as tk
 
-from ui import LoginFrame, DailyFrame, TestFrame, ResultFrame, Overframe
-from logic import audio_connected, internet_connected
+from ui import LoginFrame, DailyFrame, TestFrame, ResultFrame
+from logic import audio_connected, audio_close, internet_connected
 from api_client import server_check
 from constants import Path, Color, Font_E
 
@@ -28,7 +28,7 @@ class App:
         self.speaker_icon = tk.PhotoImage(file=Path.SPEAKER)
         self.next_icon = tk.PhotoImage(file=Path.NEXT)
         self.audio = audio_connected()
-        # TODO: 프로그램종료시 mixer.quit()을 통해 오디오 연결 종료해주는게 좋음
+        self.root.protocol('WM_DELETE_WINDOW', lambda: audio_close(self))
         if not internet_connected():
             self.show_overframe('Internet connection is required.')
             return
@@ -41,7 +41,7 @@ class App:
 
         # 프레임 초기화
         self.frames = {}
-        for F in (LoginFrame, DailyFrame, TestFrame, ResultFrame, Overframe):
+        for F in (LoginFrame, DailyFrame, TestFrame, ResultFrame):
             frame = F(container, self)
             self.frames[F] = frame
             frame.place(x=0, y=0, relwidth=1, relheight=1)

@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import logic
 from api_client import  take_category
-from constants import Color, Font_E, Font_K, Font_J, Text_D
+from constants import Color, Font_E, Font_K, Font_J, Text_D, Tip
 
 class LoginFrame(tk.Frame):
     '''로그인 화면을 구성하는 프레임'''
@@ -248,26 +248,31 @@ class DailyFrame(tk.Frame):
         self.language = None    # 선택언어 (K , J)
         self.font = None        # 언어폰트 (Font_K, Font_J)
         self.dayword = None     # 오늘의 단어 개수
-        self.today_word = []    # 오늘의 단어 리스트
+        self.today_word = []    # 오늘의 단어로 데이터베이스에서 가져온 리스트
+        self.word_pointer = 0   # 오늘의 단어의 조회위치를 가르키는 포인터
+        self.today_confirm = [] # 오늘의 단어로 확정된 단어리스트
+        self.today_mean = []    # 오늘의 단어 뜻 리스트
+        self.already_know = []  # 이미 아는 단어 리스트
+        self.all_word = []      # 오른쪽에 표시할 모든 단어
         self.addbool = None     # add_yourself 인지 아닌지 (True, False)
-        self.check_streak = 0   # 연속 로그인 횟수(n) or 최초로그인(-2) or 오늘이미 완료(-1)
+        self.streak = 0   # 연속 로그인 횟수(n) or 최초로그인(-2) or 오늘이미 완료(-1)
 
-    def set_data(self, username, language, dayword, today_word, addbool, check_streak):
-        '''프레임 내부 데이터 갱신'''
+    def set_data(self, username, language, dayword, today_word, addbool, streak):
+        '''로그인시 로그인 정보롤 데이터 초기화'''
         self.username = username
         self.language = language
         self.font = Font_K if self.language == 'K' else Font_J
         self.dayword = dayword
         self.today_word = today_word
         self.addbool = addbool
-        self.check_streak = check_streak
+        self.streak = streak
 
     def create_widgets(self):
         '''오늘의 단어 화면에 필요한 위젯 생성 및 배치'''
         # 최초로그인 or 연속로그인상태 or 오늘이미 완료 라벨
-        streak_lbl = tk.Label(self, font=self.font.BODY_BIG, anchor='w')
-        streak_lbl.pack(pady=40)
-        logic.type_writer(streak_lbl, logic.streak_login(self.check_streak, self.language))
+        title_lbl = tk.Label(self, font=self.font.BODY_BIG, anchor='w')
+        title_lbl.pack(pady=40)
+        logic.type_writer(title_lbl, logic.streak(self.streak, self.language))
 
         # 중앙 프레임
         center_frm = tk.Frame(self, bg=Color.DARK)
@@ -276,68 +281,96 @@ class DailyFrame(tk.Frame):
         # 왼쪽 프레임
         left_frm = tk.Frame(center_frm, bg=Color.DARK)
         left_frm.pack(side='left', expand=True, fill='both')
+        left_frm.bind('<Button-1>', lambda e: left_frm.focus_set())
 
         # 진행률라벨
         self.progress_lbl = tk.Label(
-            left_frm, bg=Color.DARK, font=Font_E.BODY_BIG_BOLD, text=f'0 / {self.dayword}'
+            left_frm, bg=Color.DARK, font=Font_E.BODY_BIG_BOLD,
+            text=f'{len(self.today_confirm) + 1} / {self.dayword}'
         )
         self.progress_lbl.pack(pady=60)
 
-        # 단어, 아이콘 프레임
-        word_frm = tk.Frame(left_frm, bg=Color.DARK)
-        word_frm.pack(pady=(15, 65))
+        # add yourself 가 아닌 경우
+        if self.addbool == False:
+            # 단어, 아이콘 프레임
+            word_frm = tk.Frame(left_frm, bg=Color.DARK)
+            word_frm.pack(pady=(15, 45))
 
-        # 영단어 라벨
-        self.word_lbl = tk.Label(
-            word_frm, bg=Color.DARK, font=Font_E.BODY_BIG_BOLD, text='civilazation'
-        )
-        self.word_lbl.pack(side='left')
+            # 영단어 라벨
+            self.word_lbl = tk.Label(
+                word_frm, bg=Color.DARK, font=Font_E.BODY_BIG_BOLD,
+                text=self.today_word[self.word_pointer][1]
+            )
+            self.word_lbl.pack(side='left')
 
-        # 복사이미지 라벨
-        copy_lbl = tk.Label(word_frm, bg=Color.DARK, image=self.controller.copy_icon)
-        copy_lbl.pack(side='top', padx= 10, pady=(0, 2))
-        copy_lbl.bind('<Button-1>', lambda e: logic.copy_word(self, e))
+            # 복사이미지 라벨
+            copy_lbl = tk.Label(word_frm, bg=Color.DARK, image=self.controller.copy_icon)
+            copy_lbl.pack(side='top', padx= 10, pady=(0, 2))
+            copy_lbl.bind('<Button-1>', lambda e: logic.copy_word(self, e))
 
-        # 스피커이미지 라벨
-        speaker_lbl = tk.Label(word_frm, bg=Color.DARK, image=self.controller.speaker_icon)
-        speaker_lbl.pack(side='top')
-        speaker_lbl.bind(
-            '<Button-1>', lambda e: logic.play_pronunciation(self, self.word_lbl.cget('text'))
-        )
+            # 스피커이미지 라벨
+            speaker_lbl = tk.Label(word_frm, bg=Color.DARK, image=self.controller.speaker_icon)
+            speaker_lbl.pack(side='top')
+            speaker_lbl.bind(
+                '<Button-1>', lambda e: logic.play_pronunciation(self, self.word_lbl.cget('text'))
+            )
+        # add yourself 인 경우
+        else:
+            # 단어 입력창
+            self.word_ent = tk.Entry(
+                left_frm, bg=Color.GREY, font=Font_E.BODY_BOLD, justify='center',
+                relief='flat', width=25, highlightthickness=10,
+                highlightbackground = Color.GREY, highlightcolor = Color.GREY
+            )
+            self.word_ent.pack(pady=(15, 85))
+            logic.limit_entry_length(self.word_ent, 20)
 
         # 뜻 입력창, 버튼 이미 아는 단어 라벨을 담는 프레임
         input_frm = tk.Frame(left_frm, bg=Color.DARK)
-        input_frm.pack(pady=15)
+        input_frm.pack(pady=(0, 6))
+
+        if self.addbool == False:
+        # 이미 아는 단어일 경우 라벨
+            already_lbl = tk.Label(
+                input_frm, bg=Color.DARK, font=self.font.CAPTION, text=Text_D.ALREADY[self.language],
+                image=self.controller.next_icon, compound='right'
+            )
+            already_lbl.bind('<Button-1>', lambda e: logic.already_know_word(
+                    self, title_lbl, message_lbl, tip_lbl, record_frm
+                )
+            )
+            already_lbl.grid(row=0, column=0, padx=13, pady=(0, 6), sticky='w')
 
         # 뜻 입력창
-        mean_ent = tk.Entry(
+        self.mean_ent = tk.Entry(
             input_frm, bg=Color.GREY, font=self.font.ENTRY,
             relief='flat', width=25, highlightthickness=10,
             highlightbackground = Color.GREY, highlightcolor = Color.GREY
         )
-        mean_ent.grid(row=0, column=0, padx=15)
-        logic.limit_entry_length(mean_ent, 50)
+        self.mean_ent.grid(row=1, column=0, padx=15)
+        logic.limit_entry_length(self.mean_ent, 50)
+        self.mean_ent.bind('<Return>', lambda e: logic.daily_confirm(
+            self, title_lbl, message_lbl, tip_lbl, record_frm
+            )
+        )
 
         # 결정 버튼
         tk.Button(
             input_frm, bg=Color.GREEN, font=self.font.ENTRY,
             text=Text_D.CONFIRM[self.language],
-            # TODO: command=
-        ).grid(row=0, column=1, padx=15)
+            command=lambda: logic.daily_confirm(
+                self, title_lbl, message_lbl, tip_lbl, record_frm
+            )
+        ).grid(row=1, column=1, padx=15)
 
-        # 이미 아는 단어 라벨
-        already_lbl = tk.Label(
-            input_frm, bg=Color.DARK, font=self.font.CAPTION, text=Text_D.ALREADY[self.language],
-            image=self.controller.next_icon, compound='right'
-        )
-        # TODO: already_lbl.bind('<Button-1>', lambda e: )
-        already_lbl.grid(row=1, column=0, padx=12, pady=6, sticky='w')
+        # 메시지 라벨
+        message_lbl = tk.Label(left_frm, bg=Color.DARK, font=self.font.CAPTION)
+        message_lbl.pack(pady=(0, 20))
 
-        self.tip_lbl = tk.Label(
-            left_frm, bg=Color.DARK, font=self.font.CAPTION,
-            text=Text_D.TIP_INITIAL_1[self.language]
-        )
-        self.tip_lbl.pack(side='left', padx=20)
+        # 팁 라벨
+        tip_lbl = tk.Label(left_frm, bg=Color.DARK, font=self.font.CAPTION)
+        tip_lbl.pack(side='left', padx=20)
+        logic.show_random_tip(self, tip_lbl)
 
         # 오른쪽 프레임
         right_frm = tk.Frame(center_frm, width=200)
@@ -345,7 +378,7 @@ class DailyFrame(tk.Frame):
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
         canvas = tk.Canvas(
-            right_frm, bg=Color.DEEP, width=200, highlightthickness=10,
+            right_frm, bg=Color.DEEP, width=200, highlightthickness=1,
             highlightbackground = Color.DEEP, highlightcolor = Color.DEEP
         )
         canvas.pack(side='left', fill='both', expand=True)
@@ -361,12 +394,9 @@ class DailyFrame(tk.Frame):
         canvas.create_window((0, 0), window=record_frm, anchor='n')
         record_frm.bind('<Configure>', lambda e: logic.on_frame_configure(e, canvas))
 
-        # 예시 내용
-        for i in range(self.dayword):
-            tk.Label(
-                record_frm, bg=Color.DEEP, text=f'{i+1}. word',
-                font=Font_E.SMALL
-            ).pack(padx=6, pady=6)
+        # add yourself가 아닌 경우 첫 단어 오른쪽 리스트에 넣고 시작
+        if self.addbool == False:
+            logic.insert_all_word(self, record_frm)
 
         # 사전 URL 라벨
         dict_lbl = tk.Label(
@@ -376,6 +406,23 @@ class DailyFrame(tk.Frame):
         dict_lbl.bind('<Button-1>', lambda e: logic.copy_dict(self, e))
         dict_lbl.pack(side='left', padx=160, pady=(6, 54))
         
+    def manual_window(self):
+        '''최초 로그인 시 매뉴얼을 보여주는 윈도우'''
+        # TODO: self에 Toplevel창 띄워서 UI 설명하기
+        pass
+
+    def addyourself_manual_window(self):
+        '''add yourself 최초 로그인 시 매뉴얼을 보여주는 윈도우'''
+        # TODO: self에 Toplevel창 띄워서 UI 설명하기
+        pass
+
+    def word_confirm_window(self):
+        '''오늘의 단어를 최종적으로 확인하는 윈도우'''
+        # TODO: self에 Toplevel창 띄워서 단어 최종 확인(ok -> testframe, no -> 그냥 창만 종료)
+        print(self.today_word)
+        print(self.today_confirm)
+        print(self.today_mean)
+        print(self.already_know)
 
 
 
@@ -418,24 +465,6 @@ class ResultFrame(tk.Frame):
 
     def create_widgets(self):
         lbl_title = tk.Label(self, text="결과 화면", font=("Arial", 16, "bold"))
-        lbl_title.grid(row=0, column=0, pady=30)
-
-        btn_menu = tk.Button(self, text="메뉴로 돌아가기",
-                             command=lambda: self.controller.show_frame(DailyFrame))
-        btn_menu.grid(row=1, column=0, pady=10)
-
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-
-class Overframe(tk.Frame):
-    def __init__(self, parent, controller):
-        super().__init__(parent, bg="#FBE9E7")
-        self.controller = controller
-        self.create_widgets()
-
-    def create_widgets(self):
-        lbl_title = tk.Label(self, text="설정 화면", font=("Arial", 16, "bold"))
         lbl_title.grid(row=0, column=0, pady=30)
 
         btn_menu = tk.Button(self, text="메뉴로 돌아가기",
