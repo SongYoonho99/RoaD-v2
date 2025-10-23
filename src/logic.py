@@ -104,27 +104,57 @@ def on_mousewheel(event, canvas):
     '''마우스스크롤로 스크롤 가능하도록 하는 함수'''
     canvas.yview_scroll(-1 * (event.delta // 120), 'units')
 
-def on_frame_configure(event, canvas):
-    '''위젯의 크기, 위치, 또는 내부 구조가 변경될 때 스크롤영역 자동갱신'''
-    canvas.configure(scrollregion=canvas.bbox('all'))
-
 def show_random_tip(obj, tip_lbl):
-    '''tip 라벨에 TIP1~TIPn 중 하나를 랜덤 출력'''
-    tip_attrs = [v for k, v in Tip.__dict__.items() if k.startswith('TIP') and isinstance(v, dict)]
+    '''TIP_D 또는 TIP_B로 시작하는 항목 중 하나를 랜덤 출력'''
+    tip_attrs = [
+        v for k, v in Tip.__dict__.items()
+        if (k.startswith('TIP_D') or k.startswith('TIP_B')) and isinstance(v, dict)
+    ]
     tip = random.choice(tip_attrs)
     tip_lbl.config(text=tip[obj.language])
 
-def insert_all_word(obj, record_frm, fg=Color.FONT_DEFAULT):
+def insert_word_lbl_list(obj, record_frm):
     '''오늘의 단어 추가화면 오른쪽 리스트에 단어 추가하는 함수'''
     lbl = tk.Label(
-        record_frm, bg=Color.DEEP, fg=fg, font=Font_E.SMALL, highlightthickness=5,
-        highlightbackground = Color.DEEP, highlightcolor = Color.DEEP,
-        text=f'{obj.word_pointer + 1}. {obj.today_word[obj.word_pointer][1]}'
+        record_frm, bg=Color.DEEP, fg=Color.FONT_DEFAULT, font=Font_E.SMALL, anchor='w',
+        highlightthickness=5, highlightbackground = Color.DEEP, 
+        text=f'{obj.pointer + 1}. {obj.today_word[obj.pointer][1]}'
     )
-    lbl.pack(padx=(4, 0), anchor='w')
-    lbl.bind('<Button-1>', lambda e: all_word_click(lbl.cget('text')))
-    obj.all_word.append(lbl)
-    record_frm.update_idletasks(); record_frm.master.yview_moveto(1.0)
+    lbl.pack(padx=(4, 0), fill='x')
+    lbl.bind('<Button-1>', lambda e, idx=len(obj.word_lbl_list): word_lbl_click(obj, idx))
+    obj.word_lbl_list.append(lbl)
+    record_frm.update_idletasks()
+    record_frm.master.yview_moveto(1.0)
+
+def insert_word_lbl_list_addbool(obj, record_frm):
+    '''오늘의 단어 추가화면 오른쪽 리스트에 단어 추가하는 함수(add yourself일때)'''
+    lbl = tk.Label(
+        record_frm, bg=Color.DEEP, fg=Color.FONT_DEFAULT, font=Font_E.SMALL, anchor='w',
+        highlightthickness=5, highlightbackground = Color.DEEP, text=f'{obj.pointer + 1}. '
+    )
+    lbl.pack(padx=(4, 0), fill='x')
+    lbl.bind('<Button-1>', lambda e, idx=len(obj.word_lbl_list): word_lbl_click(obj, idx))
+    obj.word_lbl_list.append(lbl)
+    record_frm.update_idletasks()
+    record_frm.master.yview_moveto(1.0)
+
+    # Entry 입력 감지
+    text_var = tk.StringVar()
+    obj.word_ent.config(textvariable=text_var)
+
+    def sync_label(*_):
+        obj.word_lbl_list[obj.pointer].config(text=f'{obj.pointer + 1}. {text_var.get()}')
+
+    text_var.trace_add('write', sync_label)
+
+
+def selected_scroll_widget(obj):
+    '''pointer가 가르키는 스크롤바 내 라벨색상을 DAKR, 그 외에는 DEEP'''
+    for idx, lbl in enumerate(obj.word_lbl_list):
+        if idx == obj.pointer:
+            lbl.config(bg=Color.DARK, highlightbackground=Color.DARK)
+        else:
+            lbl.config(bg=Color.DEEP, highlightbackground=Color.DEEP)
 
 # ==============================
 # api 호출 전후 처리 함수
@@ -242,7 +272,7 @@ def streak(check_streak, language):
         return f'{check_streak}{Text_D.STREAK[language]}'
     
 def daily_confirm(obj, title_lbl, message_lbl, tip_lbl, record_frm):
-    '''오늘의 단어 추가 화면 핵심 로직'''
+    '''결정 버튼이 눌렸을 경우 로직'''
     if obj.addbool is False:
         mean = obj.mean_ent.get()
         # 뜻 미입력 시
@@ -250,23 +280,207 @@ def daily_confirm(obj, title_lbl, message_lbl, tip_lbl, record_frm):
             show_temporarymessage(message_lbl, Text_D.WARNING_M[obj.language])
             return
         
+        # 현재 단어를 word변수에 격납
+        word = obj.today_word[obj.pointer]
+        
+        # 현재단어가 새로운 단어일 때
+        if word not in obj.today_confirm and word not in obj.already_know:
+            # 오늘의 단어 확정리스트와 뜻리스트에 단어 추가
+            obj.today_confirm.append(obj.today_word[obj.pointer])
+            obj.today_mean.append([obj.pointer + 1, mean])
+
+            # 오른쪽 리스트에서 현재단어 초록색으로 변화
+            obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_GREEN)
+
+            # 오늘의 단어가 dayword만큼 채워졌으면 word_confirm_window
+            if len(obj.today_confirm) == obj.dayword:
+                obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+                obj.word_confirm_window()
+                return
+
+            # 오늘의 단어의 조회위치를 가르키는 포인터 += 1
+            obj.pointer += 1
+
+            # 다음 단어가 없을경우 db에서 dayword - len(today_confirm) + 1만큼 더 가져옴(1은 여유분)
+            if obj.pointer >= len(obj.today_word):
+                response = api_client.take_more_word(obj)
+
+                if response.status_code == 200:
+                    today_word_temp = response.json().get('add_word')
+                    if obj.today_word == today_word_temp:
+                        obj.word_confirm_window()
+                        return
+                    else:
+                        obj.today_word = today_word_temp
+                else:
+                    obj.show_overframe('Instance Connection Failure')
+                    return
+
+            # 결정된 단어를 오른쪽 리스트에 추가 및 표시
+            insert_word_lbl_list(obj, record_frm)
+            # 현재 단어에 스크롤위젯 포커싱
+            selected_scroll_widget(obj)
+
+            # 제목, 진행률, 영단어, 뜻 입력창 갱신
+            title_lbl.config(text=f'{Text_D.TITLE1[obj.language]} {obj.dayword}{Text_D.TITLE2[obj.language]}')
+            obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+            obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
+            obj.mean_ent.delete(0, 'end')
+
+        # 현재 단어가 이미 오늘의 단어 확정리스트에 들어가 있는 단어일때
+        elif word in obj.today_confirm:
+            # 뜻리스트 갱신
+            for i, item in enumerate(obj.today_mean):
+                if item[0] == obj.pointer + 1:
+                    obj.today_mean[i] = [item[0], mean]
+                    break
+
+            # 아래는 나중에 문제없을 시 삭제할 것
+            # # 오늘의 단어가 dayword만큼 채워졌으면 word_confirm_window(수정시에만 해당)
+            # if len(obj.today_confirm) == obj.dayword:
+            #     obj.word_confirm_window()
+            #     return
+        
+            # 오늘의 단어의 조회위치를 가르키는 포인터 += 1
+            obj.pointer += 1
+
+            # 현재 단어에 스크롤위젯 포커싱
+            selected_scroll_widget(obj)
+
+            # 진행률, 영단어, 뜻 입력창 갱신
+            obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
+            for item in obj.today_mean:
+                if item[0] == obj.pointer + 1:
+                    obj.mean_ent.delete(0, 'end')
+                    obj.mean_ent.insert(0, item[1])
+                    break
+            else:
+                obj.mean_ent.delete(0, 'end')
+
+        # 현재 단어가 이미 아는 단어 리스트에 들어가 있는 단어일때
+        else:
+            # 아래는 나중에 별 문제 없으면 삭제 할 것
+            # # 최종확인 윈도우에서 수정누르고 이미 아는단어를 today_confirm에 추가해버리면 
+            # # len(obj.today_confirm) > obj.dayword 가 되버리는 상황 방지
+            # if len(obj.today_confirm) == obj.dayword:
+            #     show_temporarymessage(
+            #         message_lbl,
+            #         f'{Text_D.WARNING_O1[obj.language]} {obj.dayword}{Text_D.WARNING_O2[obj.language]}'
+            #     )
+            #     return
+
+            # 확정리스트와 뜻리스트에 단어 추가 & 이미 아는 단어 리스트에서 삭제
+            obj.today_confirm.append(obj.today_word[obj.pointer])
+            obj.today_mean.append([obj.pointer + 1, mean])
+            obj.already_know = [i for i in obj.already_know if i[0] != obj.pointer + 1]
+
+            # 오른쪽 리스트에서 현재단어 초록색으로 변화
+            obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_GREEN)
+
+            # 오늘의 단어가 dayword만큼 채워졌으면 word_confirm_window
+            if len(obj.today_confirm) == obj.dayword:
+                obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+                obj.word_lbl_list[-1].destroy()
+                obj.word_confirm_window()
+                return
+            
+            # 오늘의 단어의 조회위치를 가르키는 포인터 += 1
+            obj.pointer += 1
+
+            # 현재 단어에 스크롤위젯 포커싱
+            selected_scroll_widget(obj)
+
+            # 진행률, 영단어, 뜻 입력창 갱신
+            obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+            obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
+            for item in obj.today_mean:
+                if item[0] == obj.pointer + 1:
+                    obj.mean_ent.delete(0, 'end')
+                    obj.mean_ent.insert(0, item[1])
+                    break
+            else:
+                obj.mean_ent.delete(0, 'end')
+    
+    # add youself 일때
+    else:
+        # 영단어 or 뜻 미입력 시
+        word = obj.word_ent.get()
+        if not word:
+            show_temporarymessage(message_lbl, Text_D.WARNING_W[obj.language])
+            return
+        mean = obj.mean_ent.get()
+        if not mean:
+            show_temporarymessage(message_lbl, Text_D.WARNING_M[obj.language])
+            return
+    
+        # TODO: 영단어 중복검사
         # 오늘의 단어 확정리스트와 뜻리스트에 단어 추가
-        obj.today_confirm.append(obj.today_word[obj.word_pointer])
-        obj.today_mean.append([obj.word_pointer + 1, mean])
+        if obj.pointer >= len(obj.today_confirm):
+            obj.today_confirm.append([obj.pointer + 1, word])
+            obj.today_mean.append([obj.pointer + 1, mean])
+        
+        else:
+            for i, item in enumerate(obj.today_confirm):
+                if item[0] == obj.pointer + 1:
+                    obj.today_confirm[i] = [item[0], word]
+                    break
+            for i, item in enumerate(obj.today_mean):
+                if item[0] == obj.pointer + 1:
+                    obj.today_mean[i] = [item[0], mean]
+                    break
 
-        # 오른쪽 리스트에서 현재단어 초록색으로 변화
-        obj.all_word[obj.word_pointer].config(fg=Color.FONT_GREEN)
+        # 오른쪽 리스트에서 현재 단어 초록색으로 변경
+        obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_GREEN)
+    
+        # 다음단어를 현재단어로 선정
+        obj.pointer += 1
 
+        if obj.pointer >= len(obj.word_lbl_list):
+            # 오른쪽 리스트 추가 및 표시
+            insert_word_lbl_list_addbool(obj, record_frm)
+        selected_scroll_widget(obj)
+    
         # 오늘의 단어가 dayword만큼 채워졌으면 word_confirm_window
         if len(obj.today_confirm) == obj.dayword:
+            obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+            obj.word_lbl_list[-1].destroy()
+            obj.word_ent.delete(0, 'end')
+            obj.mean_ent.delete(0, 'end')
             obj.word_confirm_window()
             return
 
-        # 오늘의 단어의 조회위치를 가르키는 포인터 += 1
-        obj.word_pointer += 1
+        # 제목, 진행률, 영단어 입력창, 뜻 입력창, 팁 갱신
+        title_lbl.config(text=f'{Text_D.TITLE1[obj.language]} {obj.dayword}{Text_D.TITLE2[obj.language]}')
+        obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+        if obj.pointer >= len(obj.today_confirm):
+            obj.word_ent.delete(0, 'end')
+            obj.mean_ent.delete(0, 'end')
+        else:
+            obj.word_ent.delete(0, 'end')
+            obj.word_ent.insert(0, obj.today_confirm[obj.pointer][1])
+            obj.mean_ent.delete(0, 'end')
+            obj.mean_ent.insert(0, obj.today_mean[obj.pointer][1])
+        obj.word_ent.focus()
 
-        # 오늘의 단어리스트가 부족하여 데이터베이스에서 dayword - len(today_confirm)만큼 더 가져옴
-        if obj.word_pointer >= len(obj.today_word):
+    # 팁 갱신
+    show_random_tip(obj, tip_lbl)
+
+def already_know_word(obj, tip_lbl, record_frm):
+    word = obj.today_word[obj.pointer]
+
+    # 현재단어가 새로운 단어일 때
+    if word not in obj.today_confirm and word not in obj.already_know:
+        # 이미 아는 단어 리스트에 추가
+        obj.already_know.append(word)
+
+        # 오른쪽 리스트에서 현재단어 파란색으로 변화
+        obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_BLUE)
+
+        # 다음 단어를 현재단어로 변경
+        obj.pointer += 1
+
+        # 다음 단어가 없을경우 db에서 dayword - len(today_confirm) + 1만큼 더 가져옴
+        if obj.pointer >= len(obj.today_word):
             response = api_client.take_more_word(obj)
 
             if response.status_code == 200:
@@ -281,79 +495,89 @@ def daily_confirm(obj, title_lbl, message_lbl, tip_lbl, record_frm):
                 return
 
         # 결정된 단어를 오른쪽 리스트에 추가 및 표시
-        insert_all_word(obj, record_frm)
+        insert_word_lbl_list(obj, record_frm)
+        # 현재 단어에 스크롤위젯 포커싱
+        selected_scroll_widget(obj)
 
-        # 제목, 진행률, 영단어, 뜻 입력창, 팁 갱신
-        title_lbl.config(text=Text_D.TITLE[obj.language])
-        obj.progress_lbl.config(text=f'{len(obj.today_confirm) + 1} / {obj.dayword}')
-        obj.word_lbl.config(text=obj.today_word[obj.word_pointer][1])
+        # 영단어, 뜻 입력창, 팁 갱신
+        obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
         obj.mean_ent.delete(0, 'end')
-        show_random_tip(obj, tip_lbl)
-    
-    else:
-        # 영단어 or 뜻 미입력 시
-        word = obj.word_ent.get()
-        if not word:
-            show_temporarymessage(message_lbl, Text_D.WARNING_W[obj.language])
-            return
-        mean = obj.mean_ent.get()
-        if not mean:
-            show_temporarymessage(message_lbl, Text_D.WARNING_M[obj.language])
-            return
-    
-        # 오늘의 단어 확정리스트와 뜻리스트에 단어 추가
-        obj.today_confirm.append([obj.word_pointer + 1, word])
-        obj.today_mean.append([obj.word_pointer + 1, mean])
-    
-        # 결정된 단어를 오른쪽 리스트에 추가 및 표시
-        insert_all_word(obj, record_frm, Color.FONT_GREEN)
-    
-        # 오늘의 단어가 dayword만큼 채워졌으면 word_confirm_window
-        if len(obj.today_confirm) == obj.dayword:
-            obj.word_confirm_window()
-            return
 
-        # 제목, 진행률, 영단어 입력창, 뜻 입력창, 팁 갱신
-        title_lbl.config(text=Text_D.TITLE[obj.language])
-        obj.progress_lbl.config(text=f'{len(obj.today_confirm) + 1} / {obj.dayword}')
-        obj.word_ent.delete(0, 'end')
-        obj.mean_ent.delete(0, 'end')
-        show_random_tip(obj, tip_lbl)
+    # 현재 단어가 이미 오늘의 단어 확정리스트에 들어가 있는 단어일때
+    elif word in obj.today_confirm:
+        # 오늘의 단어 확정리스트에서 제거 & 이미 아는 단어 리스트에 추가
+        obj.today_confirm = [i for i in obj.today_confirm if i[0] != obj.pointer + 1]
+        obj.today_mean = [i for i in obj.today_mean if i[0] != obj.pointer + 1]
+        obj.already_know.append(word)
 
-def already_know_word(obj, title_lbl, message_lbl, tip_lbl, record_frm):
-    # 이미 아는 단어 리스트에 단어 튜플형태로 추가
-    obj.already_know.append(obj.today_word[obj.word_pointer])
+        # 오른쪽 리스트에서 현재단어 파란색으로 변화
+        obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_BLUE)
 
-    # 오른쪽 리스트에서 현재단어 파란색으로 변화
-    obj.all_word[obj.word_pointer].config(fg=Color.FONT_BLUE)
+        # 다음 단어를 현재단어로 변경
+        obj.pointer += 1
+        # 현재 단어에 스크롤위젯 포커싱
+        selected_scroll_widget(obj)
 
-    # 오늘의 단어의 조회위치를 가르키는 포인터 += 1
-    obj.word_pointer += 1
-
-    # 오늘의 단어리스트가 부족하여 데이터베이스에서 dayword - len(today_confirm)만큼 더 가져옴
-    if obj.word_pointer >= len(obj.today_word):
-        response = api_client.take_more_word(obj)
-
-        if response.status_code == 200:
-            today_word_temp = response.json().get('add_word')
-            if obj.today_word == today_word_temp:
-                obj.word_confirm_window()
-                return
-            else:
-                obj.today_word = today_word_temp
+        # 진행률-1, 영단어, 뜻 입력창, 팁 갱신
+        obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+        obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
+        for item in obj.today_mean:
+            if item[0] == obj.pointer + 1:
+                obj.mean_ent.delete(0, 'end')
+                obj.mean_ent.insert(0, item[1])
+                break
         else:
-            obj.show_overframe('Instance Connection Failure')
-            return
+            obj.mean_ent.delete(0, 'end')
+    
+    # 현재 단어가 이미 아는 단어 리스트에 들어가 있는 단어일때
+    else:
+        # 다음 단어를 현재단어로 변경
+        obj.pointer += 1
+        # 현재 단어에 스크롤위젯 포커싱
+        selected_scroll_widget(obj)
 
-    # 결정된 단어를 오른쪽 리스트에 추가 및 표시
-    insert_all_word(obj, record_frm)
+        # 영단어, 뜻 입력창, 팁 갱신
+        obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
+        for item in obj.today_mean:
+            if item[0] == obj.pointer + 1:
+                obj.mean_ent.delete(0, 'end')
+                obj.mean_ent.insert(0, item[1])
+                break
+        else:
+            obj.mean_ent.delete(0, 'end')
 
-    # 제목, 영단어, 뜻 입력창, 팁 갱신
-    title_lbl.config(text=Text_D.TITLE[obj.language])
-    obj.word_lbl.config(text=obj.today_word[obj.word_pointer][1])
-    obj.mean_ent.delete(0, 'end')
+    # 팁 갱신
     show_random_tip(obj, tip_lbl)
 
-def all_word_click(t):
+def word_lbl_click(obj, n):
     '''오른쪽 프레임에서 단어를 눌렀을 경우 그 단어편집상태로 이동하는 함수'''
-    print(t)
+    # 클릭한 단어가 현재단어가 아닐경우
+    if obj.pointer != n:
+        # 클릭한 단어를 현재단어로 변경
+        obj.pointer = n
+
+        # 영단어, 뜻 입력창 갱신 및 스크롤바에서 선택한 단어 포커싱
+        if obj.addbool:
+            for item in obj.today_confirm:
+                if item[0] == obj.pointer + 1:
+                    obj.word_ent.delete(0, 'end')
+                    obj.word_ent.insert(0, item[1])
+                    break
+            else:
+                obj.word_ent.delete(0, 'end')
+
+        for item in obj.today_mean:
+            if item[0] == obj.pointer + 1:
+                obj.mean_ent.delete(0, 'end')
+                obj.mean_ent.insert(0, item[1])
+                break
+        else:
+            obj.mean_ent.delete(0, 'end')
+        selected_scroll_widget(obj)
+
+def checkcheck(obj):
+    print(f'pointer : {obj.pointer}, 스크롤바 리스트 개수 : {len(obj.word_lbl_list)}')
+    print('========== today_confirm ==========')
+    print(obj.today_confirm)
+    print('========== today_mean ==========')
+    print(obj.today_mean)

@@ -69,6 +69,7 @@ class LoginFrame(tk.Frame):
         signup_window = tk.Toplevel(self, bg=Color.DARK)
         signup_window.title('Sign Up')
         signup_window.resizable(False, False)
+        signup_window.grab_set()
         signup_window.bind(
             '<Button-1>', lambda e: signup_window.focus_set() if e.widget == signup_window else None
         )
@@ -160,6 +161,7 @@ class LoginFrame(tk.Frame):
         delaccount_window = tk.Toplevel(self, bg=Color.DARK)
         delaccount_window.title('Delete Account')
         delaccount_window.resizable(False, False)
+        delaccount_window.grab_set()
         delaccount_window.bind(
             '<Button-1>', lambda e: delaccount_window.focus_set() if e.widget == delaccount_window else None
         )
@@ -202,6 +204,7 @@ class LoginFrame(tk.Frame):
         reconfirm_window = tk.Toplevel(delaccount_window, bg=Color.DARK)
         reconfirm_window.title('Delete Account Reconfirm')
         reconfirm_window.resizable(False, False)
+        reconfirm_window.grab_set()
         reconfirm_window.bind(
             '<Button-1>', lambda e: reconfirm_window.focus_set() if e.widget == reconfirm_window else None
         )
@@ -249,19 +252,19 @@ class DailyFrame(tk.Frame):
         self.font = None        # 언어폰트 (Font_K, Font_J)
         self.dayword = None     # 오늘의 단어 개수
         self.today_word = []    # 오늘의 단어로 데이터베이스에서 가져온 리스트
-        self.word_pointer = 0   # 오늘의 단어의 조회위치를 가르키는 포인터
+        self.pointer = 0        # 현재 화면에 표시할 단어의 번호
         self.today_confirm = [] # 오늘의 단어로 확정된 단어리스트
         self.today_mean = []    # 오늘의 단어 뜻 리스트
         self.already_know = []  # 이미 아는 단어 리스트
-        self.all_word = []      # 오른쪽에 표시할 모든 단어
+        self.word_lbl_list = [] # 오른쪽에 표시할 모든 단어
         self.addbool = None     # add_yourself 인지 아닌지 (True, False)
-        self.streak = 0   # 연속 로그인 횟수(n) or 최초로그인(-2) or 오늘이미 완료(-1)
+        self.streak = 0         # 연속 로그인 횟수(n) or 최초로그인(-2) or 오늘이미 완료(-1)
 
     def set_data(self, username, language, dayword, today_word, addbool, streak):
         '''로그인시 로그인 정보롤 데이터 초기화'''
         self.username = username
         self.language = language
-        self.font = Font_K if self.language == 'K' else Font_J
+        self.font = Font_K if self.language == 'K' else Font_J  # 폰트설정 편하게 하기위한 변수
         self.dayword = dayword
         self.today_word = today_word
         self.addbool = addbool
@@ -280,13 +283,13 @@ class DailyFrame(tk.Frame):
 
         # 왼쪽 프레임
         left_frm = tk.Frame(center_frm, bg=Color.DARK)
-        left_frm.pack(side='left', expand=True, fill='both')
+        left_frm.pack(side='left', fill='both', expand=True)
         left_frm.bind('<Button-1>', lambda e: left_frm.focus_set())
 
         # 진행률라벨
         self.progress_lbl = tk.Label(
             left_frm, bg=Color.DARK, font=Font_E.BODY_BIG_BOLD,
-            text=f'{len(self.today_confirm) + 1} / {self.dayword}'
+            text=f'{len(self.today_confirm)} / {self.dayword}'
         )
         self.progress_lbl.pack(pady=60)
 
@@ -299,7 +302,7 @@ class DailyFrame(tk.Frame):
             # 영단어 라벨
             self.word_lbl = tk.Label(
                 word_frm, bg=Color.DARK, font=Font_E.BODY_BIG_BOLD,
-                text=self.today_word[self.word_pointer][1]
+                text=self.today_word[self.pointer][1]
             )
             self.word_lbl.pack(side='left')
 
@@ -336,7 +339,7 @@ class DailyFrame(tk.Frame):
                 image=self.controller.next_icon, compound='right'
             )
             already_lbl.bind('<Button-1>', lambda e: logic.already_know_word(
-                    self, title_lbl, message_lbl, tip_lbl, record_frm
+                    self, tip_lbl, record_frm
                 )
             )
             already_lbl.grid(row=0, column=0, padx=13, pady=(0, 6), sticky='w')
@@ -373,30 +376,33 @@ class DailyFrame(tk.Frame):
         logic.show_random_tip(self, tip_lbl)
 
         # 오른쪽 프레임
-        right_frm = tk.Frame(center_frm, width=200)
+        right_frm = tk.Frame(center_frm)
         right_frm.pack(side='left', fill='y')
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
         canvas = tk.Canvas(
-            right_frm, bg=Color.DEEP, width=200, highlightthickness=1,
-            highlightbackground = Color.DEEP, highlightcolor = Color.DEEP
+            right_frm, bg=Color.DEEP, highlightbackground = Color.DARK, width=200
         )
         canvas.pack(side='left', fill='both', expand=True)
         canvas.bind_all('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
 
         # 수직 스크롤바 생성 및 Canvas와 연결
         scrollbar = tk.Scrollbar(right_frm, command=canvas.yview)
-        scrollbar.pack(side='right', fill='both')
+        scrollbar.pack(side='right', fill='y')
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # Canvas 안에 실제 내용(Frame) 생성
-        record_frm = tk.Frame(canvas, bg=Color.DEEP)
-        canvas.create_window((0, 0), window=record_frm, anchor='n')
-        record_frm.bind('<Configure>', lambda e: logic.on_frame_configure(e, canvas))
+        record_frm = tk.Frame(canvas, bg=Color.DARK)
+        canvas.create_window((0, 0), window=record_frm, anchor='nw', width=200)
+        record_frm.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
 
         # add yourself가 아닌 경우 첫 단어 오른쪽 리스트에 넣고 시작
         if self.addbool == False:
-            logic.insert_all_word(self, record_frm)
+            logic.insert_word_lbl_list(self, record_frm)
+            logic.selected_scroll_widget(self)
+        else:
+            logic.insert_word_lbl_list_addbool(self, record_frm)
+            logic.selected_scroll_widget(self)
 
         # 사전 URL 라벨
         dict_lbl = tk.Label(
@@ -419,12 +425,8 @@ class DailyFrame(tk.Frame):
     def word_confirm_window(self):
         '''오늘의 단어를 최종적으로 확인하는 윈도우'''
         # TODO: self에 Toplevel창 띄워서 단어 최종 확인(ok -> testframe, no -> 그냥 창만 종료)
-        print(self.today_word)
         print(self.today_confirm)
-        print(self.today_mean)
-        print(self.already_know)
-
-
+        
 
 
 

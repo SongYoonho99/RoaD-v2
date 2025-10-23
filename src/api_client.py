@@ -35,7 +35,7 @@ def login(obj, username):
         obj.controller.show_overframe(response.json().get('message'))
 
 def take_more_word(obj):
-    payload = {'username': obj.username, 'n': obj.word_pointer + obj.dayword - len(obj.today_confirm)}
+    payload = {'username': obj.username, 'n': len(obj.today_word) + obj.dayword - len(obj.today_confirm)}
     try:
         URL = f'{base_URL}take_more_word'
         response = requests.post(URL, json=payload)
