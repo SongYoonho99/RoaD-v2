@@ -5,4 +5,4 @@ venv/
 .env
 *.txt
 tools/ex.py
-*.pem
+road_key.pem
