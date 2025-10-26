@@ -72,7 +72,8 @@ class LoginFrame(tk.Frame):
         sign_up_window.resizable(False, False)
         sign_up_window.grab_set()
         sign_up_window.bind(
-            '<Button-1>', lambda e: sign_up_window.focus_set() if e.widget == sign_up_window else None
+            '<Button-1>',
+            lambda e: sign_up_window.focus_set() if e.widget == sign_up_window else None
         )
         logic.place_window_center(sign_up_window, 480, 580)
 
@@ -178,6 +179,10 @@ class LoginFrame(tk.Frame):
         )
         username_ent.insert(0, 'Username')
         username_ent.bind('<FocusIn>', logic.clear_placeholder)
+        username_ent.bind('<Return>', lambda e: connector.check_user_before_delete(
+                self, username_ent.get(), message_lbl, delete_account_window
+            )
+        )
         logic.limit_entry_length(username_ent)
         username_ent.pack(pady=(0, 32))
 
@@ -199,6 +204,10 @@ class LoginFrame(tk.Frame):
         reconfirm_window.title('Reconfirm delete account')
         reconfirm_window.resizable(False, False)
         reconfirm_window.grab_set()
+        reconfirm_window.bind(
+            '<Button-1>',
+            lambda e: reconfirm_window.focus_set() if e.widget == reconfirm_window else None
+        )
         logic.place_window_center(reconfirm_window, 400, 290)
 
         # 입력 문구 안내 라벨
@@ -216,8 +225,13 @@ class LoginFrame(tk.Frame):
             reconfirm_window, bg=Color.GREY, font=Font_E.ENTRY_DELETE,
             fg=Color.FONT_USERNAME, insertbackground=Color.FONT_USERNAME, justify='center'
         )
+        delete_ent.bind('<Return>', lambda e: connector.delete_account(
+                self, delete_ent.get(), username, message_lbl, delete_account_window
+            )
+        )
         logic.limit_entry_length(delete_ent, len(username) + 7)
         delete_ent.pack(pady=(0, 25))
+        delete_ent.focus()
 
         # 최종 계정 삭제 버튼
         tk.Button(
@@ -336,7 +350,7 @@ class DailyFrame(tk.Frame):
                 image=self.controller.next_icon, compound='right'
             )
             already_lbl.bind('<Button-1>', lambda e: logic.on_already_click(
-                    self, tip_lbl, record_frm
+                    self, tip_lbl, message_lbl, record_frm
                 )
             )
             already_lbl.grid(row=0, column=0, padx=8, pady=(0, 6), sticky='w')
@@ -353,7 +367,7 @@ class DailyFrame(tk.Frame):
         self.mean_ent.grid(row=1, column=0, padx=(0, 15))
         logic.limit_entry_length(self.mean_ent, 30)
         self.mean_ent.bind('<Return>', lambda e: logic.on_decision_click(
-            self, title_lbl, message_lbl, tip_lbl, record_frm
+                self, title_lbl, message_lbl, tip_lbl, record_frm
             )
         )
 
@@ -413,22 +427,77 @@ class DailyFrame(tk.Frame):
         dict_lbl.bind('<Button-1>', lambda e: logic.copy_url(self, e))
         dict_lbl.pack(side='bottom')
         
-    def manual_window(self):
+    def open_manual_window(self):
         '''최초 로그인 시 매뉴얼을 보여주는 윈도우'''
         # TODO: self에 Toplevel창 띄워서 UI 설명하기
         pass
 
-    def addyourself_manual_window(self):
+    def open_add_yourself_manual_window(self):
         '''add yourself 최초 로그인 시 매뉴얼을 보여주는 윈도우'''
         # TODO: self에 Toplevel창 띄워서 UI 설명하기
         pass
 
-    def word_confirm_window(self):
-        '''오늘의 단어를 최종적으로 확인하는 윈도우'''
-        # TODO: self에 Toplevel창 띄워서 단어 최종 확인(ok -> testframe, no -> 그냥 창만 종료)
-        print(self.today_confirm)
-        print(self.today_mean)
+    def open_confirm_word_window(self):
+        confirm_word_window = tk.Toplevel(self, bg=Color.DARK)
+        confirm_word_window.title(Text_D.TITLE_CONFIRM_WORD_WINDOW[self.language])
+        confirm_word_window.resizable(False, False)
+        confirm_word_window.grab_set()
+        confirm_word_window.bind(
+            '<Button-1>',
+            lambda e: confirm_word_window.focus_set() if e.widget == confirm_word_window else None
+        )
+        logic.place_window_center(confirm_word_window, 700, 635)
 
+        body_frm = tk.Frame(confirm_word_window)
+        body_frm.pack(padx=30, pady=(30, 20), fill='both', expand=True)
+
+        # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
+        canvas = tk.Canvas(body_frm, bg=Color.DEEP, highlightthickness=0)
+        canvas.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
+        canvas.pack(side='left', fill='both', expand=True)
+
+        # 수직 스크롤바 생성 및 Canvas와 연결
+        scrollbar = tk.Scrollbar(body_frm, command=canvas.yview)
+        scrollbar.pack(side='right', fill='y')
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Canvas 안에 실제 내용(Frame) 생성
+        main_frm = tk.Frame(canvas, bg=Color.DEEP)
+        canvas.create_window((0, 0), window=main_frm, anchor='nw')
+        main_frm.bind('<Configure>', lambda e: logic.on_configure(e, canvas))
+
+        self.today_confirm.sort(key=lambda item: item[0])
+        self.today_mean.sort(key=lambda item: item[0])
+
+        for i in range(len(self.today_confirm)):
+            word_lbl = tk.Label(
+                main_frm, bg=Color.DEEP, font = Font_E.BODY, anchor='w',
+                highlightthickness=5, highlightbackground=Color.DEEP,
+                text=f'{i+1}. {self.today_confirm[i][1]}'
+            )
+            word_lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
+            word_lbl.grid(row=i, column=0, sticky='ew')
+            btn = tk.Button(
+                main_frm, bg=Color.BEIGE, font=self.font.MODIFY_BUTTON, fg=Color.FONT_DARK,
+                text=Text_D.MODYFICATION[self.language]
+            )
+            btn.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
+            btn.grid(row=i, column=1, padx=(10, 20), pady=4, sticky='ew')
+            mean_lbl = tk.Label(
+                main_frm, bg=Color.DEEP, font = self.font.BODY, anchor='w',
+                text=self.today_mean[i][1]
+            )
+            mean_lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
+            mean_lbl.grid(row=i, column=2, sticky='ew')
+
+        tk.Button(
+            confirm_word_window, bg=Color.GREEN, font=self.font.CONFIRM_BUTTON,
+            text=Text_D.START_TEST[self.language]
+        ).pack(pady=(0, 4))
+        message_lbl = tk.Label(
+            confirm_word_window, bg=Color.DARK, fg=Color.FONT_RED, font=self.font.CAPTION_SMALL
+        )
+        message_lbl.pack(pady=(0, 8))
 
 
 

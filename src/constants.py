@@ -53,7 +53,11 @@ class Font_K:
     BODY_BIG = ('가비아 사이', 30)
     CAPTION = ('가비아 사이', 12)
     ENTRY = ('가비아 사이', 22)
+    CONFIRM_BUTTON = ('가비아 사이', 22)
+    BODY = ('가비아 사이', 20)
     CAPTION = ('가비아 사이', 14)
+    CAPTION_SMALL = ('가비아 사이', 12)
+    MODIFY_BUTTON = ('가비아 사이', 12)
     TIP = ('가비아 사이', 12)
 
 class Font_J:
@@ -61,7 +65,11 @@ class Font_J:
     BODY_BIG = ('UD デジタル 教科書体 N', 30)
     CAPTION = ('UD デジタル 教科書体 N', 12)
     ENTRY = ('UD デジタル 教科書体 N', 22)
+    CONFIRM_BUTTON = ('UD デジタル 教科書体 N', 22)
+    BODY = ('UD デジタル 教科書体 N', 20)
     CAPTION = ('UD デジタル 教科書体 N', 14)
+    CAPTION_SMALL = ('UD デジタル 教科書体 N', 12)
+    MODIFY_BUTTON = ('UD デジタル 教科書体 N', 12)
     TIP = ('UD デジタル 教科書体 N', 12)
 
 class Text_D:
@@ -127,6 +135,18 @@ class Text_D:
     DICT = {
         'K': '다음 영어 사전: https://dic.daum.net/index.do?dic=eng ',
         'J': 'ロングマン英和辞典: https://www.ldoceonline.com/jp/browse/english-japanese/ '
+    }
+    TITLE_CONFIRM_WORD_WINDOW = {
+        'K': '외울 단어 최종 확인',
+        'J': '覚える単語最終確認'
+    }
+    MODYFICATION = {
+        'K': '수정',
+        'J': '修正'
+    }
+    START_TEST = {
+        'K': '결정 후 복습테스트 시작',
+        'J': '決定して復習テストスタート'
     }
 
 class Tip:

@@ -196,9 +196,9 @@ def login(obj, username):
         daily_frame.create_widgets()
         obj.controller.show_frame('DailyFrame')
         if streak == -2 and not is_add_yourself:
-            daily_frame.manual_window()
+            daily_frame.open_manual_window()
         if streak == -2 and is_add_yourself:
-            daily_frame.addyourself_manual_window()
+            daily_frame.open_add_yourself_manual_window()
 
     elif response.status_code == 400:
         show_temp_message(obj.message_lbl, response.json().get('message'))
