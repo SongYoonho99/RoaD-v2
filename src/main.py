@@ -1,72 +1,77 @@
+import os
 import tkinter as tk
 
+from dotenv import load_dotenv
+
 from ui import LoginFrame, DailyFrame, TestFrame, ResultFrame
-from logic import audio_connected, audio_close, internet_connected
-from api_client import server_check
+from logic import is_internet_connected, connect_audio, close_audio
+from connector import load_ec2_ip, check_server_and_db
 from constants import Path, Color, Font_E
 
 class App:
-    '''메인 애플리케이션 클래스'''
     def __init__(self):
-        # 메인 Tk 객체
         self.root = tk.Tk()
         self.root.title('RoaD')
-        self.root.minsize(1000, 680)
+        self.root.minsize(1000, 728)
         self.root.state('zoomed')
-        self.root.iconbitmap(Path.BI)
+        try:
+            self.root.iconbitmap(Path.BI)
+        except:
+            self.show_overlay('BI road failure')
+            return
 
-        # Tk 옵션 설정
         self.root.option_add('*Background', Color.GREY)
         self.root.option_add('*Foreground', Color.FONT_DEFAULT)
         self.root.option_add('*TCombobox*Listbox*Background', Color.BEIGE)
         self.root.option_add('*TCombobox*Listbox*Foreground', Color.FONT_DARK)
         self.root.option_add('*TCombobox*Listbox*Font', Font_E.BODY_SMALL)
 
-        # 이미지 경로 & 오디오, 인터넷, 서버 체크
-        self.copy_icon = tk.PhotoImage(file=Path.COPY)
-        self.check_icon = tk.PhotoImage(file=Path.CHECK)
-        self.speaker_icon = tk.PhotoImage(file=Path.SPEAKER)
-        self.next_icon = tk.PhotoImage(file=Path.NEXT)
-        self.audio = audio_connected()
-        self.root.protocol('WM_DELETE_WINDOW', lambda: audio_close(self))
-        if not internet_connected():
-            self.show_overframe('Internet connection is required.')
+        if not is_internet_connected(self):
             return
-        if not server_check(self):
+        if not check_server_and_db(self):
             return
+        
+        try:
+            self.copy_icon = tk.PhotoImage(file=Path.COPY)
+            self.check_icon = tk.PhotoImage(file=Path.CHECK)
+            self.speaker_icon = tk.PhotoImage(file=Path.SPEAKER)
+            self.next_icon = tk.PhotoImage(file=Path.NEXT)
+        except:
+            self.show_overlay('Icon road failure')
+            return
+        
+        self.audio = connect_audio()
+        self.root.protocol('WM_DELETE_WINDOW', lambda: close_audio(self))
 
-        # 모든 프레임을 담는 컨테이너 생성
+        # 모든 프레임의 부모 프레임
         container = tk.Frame(self.root)
         container.pack(fill='both', expand=True)
 
-        # 프레임 초기화
-        self.frames = {}
-        for F in (LoginFrame, DailyFrame, TestFrame, ResultFrame):
-            frame = F(container, self)
-            self.frames[F] = frame
-            frame.place(x=0, y=0, relwidth=1, relheight=1)
+        # 프레임 초기화 및 저장
+        self.frames = {
+            F.__name__: F(container, self)
+            for F in (LoginFrame, DailyFrame, TestFrame, ResultFrame)
+        }
+        for frame in self.frames.values():
+            frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-        # 초기 화면 설정
-        self.show_frame(LoginFrame)
+        # 초기 화면을 LoginFrame으로 지정
+        self.show_frame('LoginFrame')
 
-    def show_frame(self, frame_class):
-        '''특정 프레임을 최상위로 표시'''
-        self.frames[frame_class].tkraise()
+    def show_frame(self, frame):
+        self.frames[frame].tkraise()
 
-    def show_overframe(self, errormessage):
-        '''서버 에러 발생 시 오버레이 프레임 띄우기'''
-        overframe = tk.Frame(self.root, bg=Color.GREY)
-        overframe.place(x=0, y=0, relwidth=1, relheight=1)
-        
-        # 안내 메시지
-        tk.Label(
-            overframe, text=errormessage, bg=Color.GREY, font=Font_E.TITLE_SMALL
-        ).pack(expand=True)
+    def show_overlay(self, errormessage):
+        '''프로그램이 이용 불가능한 에러 발생 시 오버레이 프레임 띄우는 함수'''
+        overlay = tk.Frame(self.root, bg=Color.GREY)
+        overlay.place(x=0, y=0, relwidth=1, relheight=1)
+        tk.Label(overlay, text=errormessage, font=Font_E.TITLE_SMALL).pack(expand=True)
 
     def run(self):
-        '''메인 이벤트 루프 실행'''
         self.root.mainloop()
 
 if __name__ == '__main__':
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+    load_ec2_ip()
     app = App()
     app.run()

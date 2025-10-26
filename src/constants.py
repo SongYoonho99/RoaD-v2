@@ -21,7 +21,7 @@ class Color:
     
     FONT_DEFAULT = '#FFFFFF'
     FONT_DARK = '#262421'
-    FONT_ENTRY = '#9E9D9C'
+    FONT_USERNAME = '#9E9D9C'
     FONT_GREEN = '#5d9948'
     FONT_RED = '#F27E7E'
     FONT_BLUE = '#0065b2'
@@ -31,12 +31,15 @@ class Font_E:
     # TODO: 폰트 없을경우 대처
     # (main에서 from tkinter import font 후 available = font.families() 이렇게 받아오고 함수로 직접 판단) 
     # Kristen ITC, Bahnschrift, Cascadia Mono, 
-    TITLE = ('Kristen ITC', 100, 'bold')
+    TITLE = ('Kristen ITC', 110, 'bold')
     TITLE_SMALL = ('Kristen ITC', 50, 'bold')
-    VERSION = ('Kristen ITC', 16)
-    ENTRY_USERNAME = ('Bahnschrift', 20)
+    VERSION = ('Kristen ITC', 18)
+    ENTRY_USERNAME = ('Bahnschrift', 26)
+    ENTRY_DELETE = ('Bahnschrift', 22)
     BUTTON = ('Arial', 20, 'bold')
-    BODY_BIG_BOLD = ('Bahnschrift', 30, 'bold')
+    BODY_PROGRESS = ('Bahnschrift', 35, 'bold')
+    BODY_WORD = ('Bahnschrift', 45, 'bold')
+    BODY_WORD_A = ('Bahnschrift', 35, 'bold')
     BODY_BOLD = ('Cascadia Mono', 20, 'bold')
     BODY = ('Bahnschrift', 20)
     BODY_ITALIC = ('Bahnschrift', 20, 'italic')
@@ -49,15 +52,17 @@ class Font_K:
     '''한글 글꼴 상수 클래스'''
     BODY_BIG = ('가비아 사이', 30)
     CAPTION = ('가비아 사이', 12)
-    ENTRY = ('가비아 사이', 20)
-    CAPTION = ('가비아 사이', 12)
+    ENTRY = ('가비아 사이', 22)
+    CAPTION = ('가비아 사이', 14)
+    TIP = ('가비아 사이', 12)
 
 class Font_J:
     '''일본어 글꼴 상수 클래스'''
     BODY_BIG = ('UD デジタル 教科書体 N', 30)
     CAPTION = ('UD デジタル 教科書体 N', 12)
-    ENTRY = ('UD デジタル 教科書体 N', 20)
-    CAPTION = ('UD デジタル 教科書体 N', 12)
+    ENTRY = ('UD デジタル 教科書体 N', 22)
+    CAPTION = ('UD デジタル 教科書体 N', 14)
+    TIP = ('UD デジタル 教科書体 N', 12)
 
 class Text_D:
     '''오늘의 단어 프레임에서 사용하는 문구를 언어별로 관리'''
@@ -114,6 +119,10 @@ class Text_D:
     WARNING_A = {
         'K': '오늘의 단어 개수가 채워진 상태에서는 이 조작이 불가능합니다.',
         'J': '今日の単語の数が貯まった状態では、この操作はできません。'
+    }
+    WARNING_D = {
+        'K': '해당 영단어가 이미 존재합니다.',
+        'J': 'その英単語は既に存在します。'
     }
     DICT = {
         'K': '다음 영어 사전: https://dic.daum.net/index.do?dic=eng ',
