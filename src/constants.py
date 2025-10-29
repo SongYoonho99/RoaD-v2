@@ -10,6 +10,23 @@ class Path:
     CHECK = os.path.join(BASE_DIR, 'check.png')
     SPEAKER = os.path.join(BASE_DIR, 'speaker.png')
     NEXT = os.path.join(BASE_DIR, 'next.png')
+    MANUAL_K = os.path.join(BASE_DIR, 'manual_k.png')
+    MANUAL_J = os.path.join(BASE_DIR, 'manual_j.png')
+    MANUAL_ADD_K = os.path.join(BASE_DIR, 'manual_add_k.png')
+    MANUAL_ADD_J = os.path.join(BASE_DIR, 'manual_add_j.png')
+    SQUARE_PROGRESS = os.path.join(BASE_DIR, 'square_progress.png')
+    SQUARE_MEAN_K = os.path.join(BASE_DIR, 'square_mean_k.png')
+    SQUARE_DICT_K = os.path.join(BASE_DIR, 'square_dict_k.png')
+    SQUARE_MEAN_J = os.path.join(BASE_DIR, 'square_mean_j.png')
+    SQUARE_DICT_J = os.path.join(BASE_DIR, 'square_dict_j.png')
+    SQUARE_KNOW_K = os.path.join(BASE_DIR, 'square_know_k.png')
+    SQUARE_KNOW_J = os.path.join(BASE_DIR, 'square_know_j.png')
+    SQUARE_RIGHT_K = os.path.join(BASE_DIR, 'square_right_k.png')
+    SQUARE_RIGHT_J = os.path.join(BASE_DIR, 'square_right_j.png')
+    SQUARE_WORD = os.path.join(BASE_DIR, 'square_word.png')
+    SQUARE_MEAN_ADD_K = os.path.join(BASE_DIR, 'square_mean_add_k.png')
+    SQUARE_MEAN_ADD_J = os.path.join(BASE_DIR, 'square_mean_add_j.png')
+    SQUARE_RIGHT_ADD = os.path.join(BASE_DIR, 'square_right_add.png')
 
 class Color:
     '''UI에서 사용하는 색상 상수 클래스'''
@@ -21,7 +38,7 @@ class Color:
     
     FONT_DEFAULT = '#FFFFFF'
     FONT_DARK = '#262421'
-    FONT_USERNAME = '#9E9D9C'
+    FONT_ENTRY = '#9E9D9C'
     FONT_GREEN = '#5d9948'
     FONT_RED = '#F27E7E'
     FONT_BLUE = '#0065b2'
@@ -55,6 +72,8 @@ class Font_K:
     ENTRY = ('가비아 사이', 22)
     CONFIRM_BUTTON = ('가비아 사이', 22)
     BODY = ('가비아 사이', 20)
+    BODY_SMALL = ('가비아 사이', 18)
+    ENTRY_CONFIRM = ('가비아 사이', 18)
     CAPTION = ('가비아 사이', 14)
     CAPTION_SMALL = ('가비아 사이', 12)
     MODIFY_BUTTON = ('가비아 사이', 12)
@@ -67,6 +86,8 @@ class Font_J:
     ENTRY = ('UD デジタル 教科書体 N', 22)
     CONFIRM_BUTTON = ('UD デジタル 教科書体 N', 22)
     BODY = ('UD デジタル 教科書体 N', 20)
+    BODY_SMALL = ('UD デジタル 教科書体 N', 18)
+    ENTRY_CONFIRM = ('UD デジタル 教科書体 N', 18)
     CAPTION = ('UD デジタル 教科書体 N', 14)
     CAPTION_SMALL = ('UD デジタル 教科書体 N', 12)
     MODIFY_BUTTON = ('UD デジタル 教科書体 N', 12)
@@ -74,6 +95,48 @@ class Font_J:
 
 class Text_D:
     '''오늘의 단어 프레임에서 사용하는 문구를 언어별로 관리'''
+    # 매뉴얼 문구
+    MANUAL_TITLE = {
+        'K': '단어 등록 메뉴얼',
+        'J': '単語登録マニュアル'
+    }
+    MANUAL_1 = {
+        'K': '이 단계는 테스트가 아닌 오늘의 단어를 등록하는 단계입니다.',
+        'J': 'このステップはテストではなく、今日の単語を登録するステップです。'
+    }
+    MANUAL_2 = {
+        'K': '이 부분은 목표한 단어수까지 얼마나 단어를 채웠는지를 나타냅니다.',
+        'J': 'この部分は目標した単語数まで、あと何個残っているかを示しています。'
+    }
+    MANUAL_3 = {
+        'K': '아래 사전을 참고하여 앞으로 외울 단어의 뜻을 자유롭게 적어주시면 됩니다.',
+        'J': '下の辞典を参考にし、これから覚える単語の意味を自由に書いてください。'
+    }
+    MANUAL_ADD_3 = {
+        'K': '외우고 싶은 영단어와 그 뜻을 각각의 빈칸에 자유롭게 적어주시면 됩니다.',
+        'J': '覚えたい英単語とその意味を各々の欄に自由に書いて下さい。'
+    }
+    MANUAL_4 = {
+        'K': '이미 아는 단어라, 외울 필요가 없다면 이 부분을 눌러주세요.',
+        'J': 'すでに既知の単語で、覚える必要がないのであれば、ここを押してください。'
+    }
+    MANUAL_ADD_4 = {
+        'K': '초록색이 추가된 단어이며, 이곳을 직접 클릭하여 편집도 가능합니다.',
+        'J': '緑が追加された単語で、直接クリックして編集もできます。'
+    }
+    MANUAL_5 = {
+        'K': '초록색이 외울단어, 파란색이 이미 아는 단어이며, 클릭하여 편집도 가능합니다.',
+        'J': '緑が覚える単語、青が既知の単語で、クリックして編集もできます。'
+    }
+    NEXT = {
+        'K': '다음',
+        'J': '次へ'
+    }
+    START = {
+        'K': '시작',
+        'J': 'スタート'
+    }
+
     # 최초로그인 or 연속로그인상태 or 오늘이미 완료 문구
     INITIAL_LOGIN = {
         'K': '안녕하세요. 오늘부터 잘부탁드려요!',
@@ -147,6 +210,10 @@ class Text_D:
     START_TEST = {
         'K': '결정 후 복습테스트 시작',
         'J': '決定して復習テストスタート'
+    }
+    WARNING_C = {
+        'K': '모든 단어의 수정작업을 마치고 테스트를 진행 해주세요.',
+        'J': 'すべての単語の修正を終えてからテストを行ってください。'
     }
 
 class Tip:

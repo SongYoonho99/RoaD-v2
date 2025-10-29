@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 
 table_name = ''  # 생성할 테이블 이름('word_'로 시작해야 하고 20자 이내여야 함)
-txt_file_name = ''  # 읽어올 텍스트 파일 이름
+txt_file_path = os.path.join(os.path.dirname(__file__), '')  # 읽어올 텍스트 파일 이름
 
 # EC2 인스턴스 서버의 기본 주소
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -17,7 +17,7 @@ def read_txt():
     '''텍스트파일 읽고 words 리스트에 격납'''
     words = []
     try:
-        with open(txt_file_name, 'r', encoding='utf-8') as f:
+        with open(txt_file_path, 'r', encoding='utf-8') as f:
             for i, line in enumerate(f, start=1):
                 word = line.strip()
                 if not word:
@@ -30,7 +30,7 @@ def read_txt():
         return words
 
     except FileNotFoundError:
-        print(f'"{txt_file_name}"을(를) 찾을 수 없습니다.')
+        print(f'"{txt_file_path}"을(를) 찾을 수 없습니다.')
         return None
     except Exception as e:
         print(f'파일 읽기 중 오류 발생: {e}')

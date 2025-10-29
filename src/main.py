@@ -26,7 +26,8 @@ class App:
         self.root.option_add('*TCombobox*Listbox*Foreground', Color.FONT_DARK)
         self.root.option_add('*TCombobox*Listbox*Font', Font_E.BODY_SMALL)
 
-        if not is_internet_connected(self):
+        if not is_internet_connected():
+            self.show_overlay('Internet connection is required.')
             return
         if not check_server_and_db(self):
             return

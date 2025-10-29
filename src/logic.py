@@ -15,13 +15,19 @@ from constants import Color, Font_E, Text_D, Tip
 # ==============================
 # 유틸 함수
 # ==============================
-def is_internet_connected(obj):
+def is_internet_connected():
     try:
-        socket.create_connection(("8.8.8.8", 53), timeout=2)
+        socket.create_connection(("8.8.8.8", 53), timeout=1)
         return True
     except:
-        obj.show_overlay('Internet connection is required.')
-        return False
+        pass
+    try:
+        urllib.request.urlopen("https://www.google.com", timeout=2)
+        return True
+    except:
+        pass
+    
+    return False
 
 def connect_audio():
     try:
@@ -38,7 +44,7 @@ def close_audio(obj):
 def place_window_center(window, width, height):
     x = window.winfo_screenwidth() // 2 - width // 2
     y = window.winfo_screenheight() // 2 - height // 2
-    window.geometry(f"{width}x{height}+{x}+{y}")
+    window.geometry(f'{width}x{height}+{x}+{y-30}')
 
 def clear_placeholder(event):
     if event.widget.get() == 'Username':
@@ -54,6 +60,61 @@ def limit_entry_length(entry, max_len=15):
         return len(new_value) <= max_len
     vcmd = (entry.register(on_validate), '%P')
     entry.config(validate='key', validatecommand=vcmd)
+
+def next_manual_page(
+        obj, message_lbl, square_progress_lbl, square_mean_lbl, square_dict_lbl,
+        square_know_lbl, square_right_lbl, next_btn, manual_window
+):
+    if obj.page == 0:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
+        square_progress_lbl.place(x=250, y=67)
+    elif obj.page == 1:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
+        square_progress_lbl.place_forget()
+        square_mean_lbl.place(x=48, y=395)
+        if obj.language == 'K':
+            square_dict_lbl.place(x=197, y=573)
+        else:
+            square_dict_lbl.place(x=81, y=572)
+    elif obj.page == 2:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
+        square_mean_lbl.place_forget()
+        square_dict_lbl.place_forget()
+        square_know_lbl.place(x=56, y=366)
+    elif obj.page == 3:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
+        square_know_lbl.place_forget()
+        square_right_lbl.place(x=643)
+        next_btn.config(text=Text_D.START[obj.language])
+    else:
+        manual_window.destroy()
+        return
+
+    obj.page += 1
+
+def next_manual_page_add(
+        obj, message_lbl, square_progress_lbl, square_word_lbl, square_mean_lbl,
+        square_right_add_lbl, next_btn, manual_window
+):
+    if obj.page == 0:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
+        square_progress_lbl.place(x=250, y=67)
+    elif obj.page == 1:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_ADD_{obj.page + 2}')[obj.language])
+        square_progress_lbl.place_forget()
+        square_word_lbl.place(x=117, y=205)
+        square_mean_lbl.place(x=50, y=369)
+    elif obj.page == 2:
+        message_lbl.config(text=getattr(Text_D, f'MANUAL_ADD_{obj.page + 2}')[obj.language])
+        square_word_lbl.place_forget()
+        square_mean_lbl.place_forget()
+        square_right_add_lbl.place(x=641)
+        next_btn.config(text=Text_D.START[obj.language])
+    else:
+        manual_window.destroy()
+        return
+
+    obj.page += 1
 
 def typing_effect(label, text, delay=75):
     '''Label의 글자를 한 글자씩 출력'''
@@ -154,6 +215,19 @@ def selected_scroll_widget(obj):
             lbl.config(bg=Color.DARK, highlightbackground=Color.DARK)
         else:
             lbl.config(bg=Color.DEEP, highlightbackground=Color.DEEP)
+
+def change_mean(obj, n):
+    if obj.btn_list[n]['bg'] == Color.BEIGE:
+        obj.btn_list[n].config(bg=Color.GREEN)
+        obj.lbl_list[n].grid_forget()
+        obj.ent_list[n].grid(row=n, column=2, sticky='ew')
+        obj.ent_list[n].focus_set()
+    else:
+        obj.today_mean[n][1] = obj.ent_list[n].get()
+        obj.btn_list[n].config(bg=Color.BEIGE)
+        obj.ent_list[n].grid_forget()
+        obj.lbl_list[n].config(text=obj.today_mean[n][1])
+        obj.lbl_list[n].grid(row=n, column=2, sticky='ew')
 
 # ==============================
 # 프로그램 로직 함수
@@ -449,3 +523,13 @@ def click_word_lbl(obj, n):
             obj.mean_ent.delete(0, 'end')
 
         selected_scroll_widget(obj)
+
+def start_test(obj, message_lbl, confirm_word_window):
+    if not all(btn['bg'] == Color.BEIGE for btn in obj.btn_list):
+        show_temp_message(message_lbl, Text_D.WARNING_C[obj.language])
+        return
+    # TODO:
+    confirm_word_window.destroy()
+    test_frm = obj.controller.frames['TestFrame']
+    test_frm.create_widgets()
+    obj.controller.show_frame('TestFrame')

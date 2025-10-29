@@ -37,11 +37,12 @@ def _check_server_and_db():
 def check_server_and_db(obj):
     response = _check_server_and_db()
     if response is None:
-        obj.controller.show_overlay('Instance connection failure.')
+        obj.show_overlay('Instance connection failure.')
+        return False
     elif response.status_code == 200:
         return True
     else:
-        obj.controller.show_overlay(response.json().get('message'))
+        obj.show_overlay(response.json().get('message'))
         return False
 
 # ==============================
@@ -180,25 +181,21 @@ def login(obj, username):
         today_word = response.json().get('today_word')
         streak = response.json().get('streak')
 
-        # 오늘의 단어로 추가할 항목이 없고, add yourself가 아닐때
+        # 오늘의 단어로 추가할 항목이 없고, add yourself가 아닐때 TODO:
         if not today_word and not is_add_yourself:
-            # TODO: 바로 테스트프레임으로 이동
-            return
-    
-        # 오늘 과정을 이미 했을 때
-        if streak == -1:
-            # TODO: 오늘 과정은 이미 종료됐다는 문구를 출력
-            return
+            test_frm = obj.controller.frames['TestFrame']
+            test_frm.create_widgets()
+            obj.controller.show_frame('TestFrame')
 
         # 로그인 성공
-        daily_frame = obj.controller.frames['DailyFrame']
-        daily_frame.init_user_data(username, language, dayword, today_word, is_add_yourself, streak)
-        daily_frame.create_widgets()
+        daily_frm = obj.controller.frames['DailyFrame']
+        daily_frm.init_user_data(username, language, dayword, today_word, is_add_yourself, streak)
+        daily_frm.create_widgets()
         obj.controller.show_frame('DailyFrame')
         if streak == -2 and not is_add_yourself:
-            daily_frame.open_manual_window()
+            daily_frm.open_manual_window()
         if streak == -2 and is_add_yourself:
-            daily_frame.open_add_yourself_manual_window()
+            daily_frm.open_add_yourself_manual_window()
 
     elif response.status_code == 400:
         show_temp_message(obj.message_lbl, response.json().get('message'))

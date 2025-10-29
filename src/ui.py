@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import logic
 import connector
-from constants import Color, Font_E, Font_K, Font_J, Text_D
+from constants import Path, Color, Font_E, Font_K, Font_J, Text_D
 
 class LoginFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -27,8 +27,8 @@ class LoginFrame(tk.Frame):
 
         # ID 입력창
         username_ent = tk.Entry(
-            bottom_frm, bg=Color.GREY, font=Font_E.ENTRY_USERNAME, fg=Color.FONT_USERNAME,
-            insertbackground=Color.FONT_USERNAME, justify='center', relief='flat', width=18,
+            bottom_frm, bg=Color.GREY, font=Font_E.ENTRY_USERNAME, fg=Color.FONT_ENTRY,
+            insertbackground=Color.FONT_ENTRY, justify='center', relief='flat', width=18,
             highlightthickness=1, highlightbackground=Color.GREY, highlightcolor=Color.GREY
         )
         username_ent.insert(0, 'Username')
@@ -85,8 +85,8 @@ class LoginFrame(tk.Frame):
 
         # ID 입력창
         username_ent = tk.Entry(
-            sign_up_window, bg=Color.GREY, font=Font_E.ENTRY_USERNAME, fg=Color.FONT_USERNAME,
-            insertbackground=Color.FONT_USERNAME, justify='center', width=18
+            sign_up_window, bg=Color.GREY, font=Font_E.ENTRY_USERNAME, fg=Color.FONT_ENTRY,
+            insertbackground=Color.FONT_ENTRY, justify='center', width=18
         )
         username_ent.insert(0, 'Username')
         username_ent.bind('<FocusIn>', logic.clear_placeholder)
@@ -174,8 +174,8 @@ class LoginFrame(tk.Frame):
 
         # ID 입력창
         username_ent = tk.Entry(
-            delete_account_window, bg=Color.GREY, font=Font_E.ENTRY_USERNAME, fg=Color.FONT_USERNAME,
-            insertbackground=Color.FONT_USERNAME, justify='center', width=18
+            delete_account_window, bg=Color.GREY, font=Font_E.ENTRY_USERNAME, fg=Color.FONT_ENTRY,
+            insertbackground=Color.FONT_ENTRY, justify='center', width=18
         )
         username_ent.insert(0, 'Username')
         username_ent.bind('<FocusIn>', logic.clear_placeholder)
@@ -223,7 +223,7 @@ class LoginFrame(tk.Frame):
         # 입력 문구 입력창
         delete_ent = tk.Entry(
             reconfirm_window, bg=Color.GREY, font=Font_E.ENTRY_DELETE,
-            fg=Color.FONT_USERNAME, insertbackground=Color.FONT_USERNAME, justify='center'
+            fg=Color.FONT_ENTRY, insertbackground=Color.FONT_ENTRY, justify='center'
         )
         delete_ent.bind('<Return>', lambda e: connector.delete_account(
                 self, delete_ent.get(), username, message_lbl, delete_account_window
@@ -264,6 +264,9 @@ class DailyFrame(tk.Frame):
         self.word_lbl_list = []         # 오른쪽에 표시할 모든 단어라벨
         self.is_add_yourself = False    # add_yourself 인지 아닌지 (True, False)
         self.streak = 0                 # 연속 로그인 횟수(n) or 최초로그인(-2) or 오늘이미 완료(-1)
+        self.btn_list = []              # confirm_word_window에서 사용하는 버튼 리스트
+        self.lbl_list = []              # confirm_word_window에서 사용하는 라벨 리스트
+        self.ent_list = []              # confirm_word_window에서 사용하는 엔트리 리스트
 
     def init_user_data(self, username, language, dayword, today_word, is_add_yourself, streak):
         self.username = username
@@ -429,16 +432,121 @@ class DailyFrame(tk.Frame):
         
     def open_manual_window(self):
         '''최초 로그인 시 매뉴얼을 보여주는 윈도우'''
-        # TODO: self에 Toplevel창 띄워서 UI 설명하기
-        pass
+        try:
+            if self.language == 'K':
+                manual = tk.PhotoImage(file=Path.MANUAL_K)
+            else:
+                manual = tk.PhotoImage(file=Path.MANUAL_J)
+            self.page = 0
+        except:
+            self.controller.show_overlay('Icon road failure')
+            return
+        
+        manual_window = tk.Toplevel(self)
+        manual_window.title(Text_D.MANUAL_TITLE[self.language])
+        manual_window.resizable(False, False)
+        logic.place_window_center(manual_window, 900, 720)
+
+        manual_lbl = tk.Label(manual_window, image=manual)
+        manual_lbl.image = manual
+        manual_lbl.place(x=(900 - manual.width()) // 2 - 5)
+
+        # 2 페이지
+        square_progress = tk.PhotoImage(file=Path.SQUARE_PROGRESS)
+        square_progress_lbl = tk.Label(manual_window, image=square_progress)
+        square_progress_lbl.image = square_progress
+
+        # 3 페이지
+        square_mean = tk.PhotoImage(file=getattr(Path, f'SQUARE_MEAN_{self.language}'))
+        square_mean_lbl = tk.Label(manual_window, image=square_mean)
+        square_mean_lbl.image = square_mean
+        square_dict = tk.PhotoImage(file=getattr(Path, f'SQUARE_DICT_{self.language}'))
+        square_dict_lbl = tk.Label(manual_window, image=square_dict)
+        square_dict_lbl.image = square_dict
+
+        # 4 페이지
+        square_know = tk.PhotoImage(file=getattr(Path, f'SQUARE_KNOW_{self.language}'))
+        square_know_lbl = tk.Label(manual_window, image=square_know)
+        square_know_lbl.image = square_know
+
+        # 5 페이지
+        square_right = tk.PhotoImage(file=getattr(Path, f'SQUARE_RIGHT_{self.language}'))
+        square_right_lbl = tk.Label(manual_window, image=square_right)
+        square_right_lbl.image = square_right
+
+        message_lbl = tk.Label(
+            manual_window, bg=Color.DEEP, font=self.font.BODY_SMALL, fg=Color.FONT_RED,
+            text=Text_D.MANUAL_1[self.language]
+        )
+        message_lbl.place(relx=0.5, rely=1.0, anchor='s', y=-75)
+
+        next_btn = tk.Button(
+            manual_window, bg=Color.GREEN, font=self.font.BODY_SMALL,
+            text=Text_D.NEXT[self.language],
+            command=lambda: logic.next_manual_page(
+                self, message_lbl, square_progress_lbl, square_mean_lbl, square_dict_lbl,
+                square_know_lbl, square_right_lbl, next_btn, manual_window
+            )
+        )
+        next_btn.place(relx=0.5, rely=1.0, anchor='s', y=-10)
 
     def open_add_yourself_manual_window(self):
         '''add yourself 최초 로그인 시 매뉴얼을 보여주는 윈도우'''
-        # TODO: self에 Toplevel창 띄워서 UI 설명하기
-        pass
+        try:
+            if self.language == 'K':
+                manual = tk.PhotoImage(file=Path.MANUAL_ADD_K)
+            else:
+                manual = tk.PhotoImage(file=Path.MANUAL_ADD_J)
+            self.page = 0
+        except:
+            self.controller.show_overlay('Icon road failure')
+            return
+        
+        manual_window = tk.Toplevel(self)
+        manual_window.title(Text_D.MANUAL_TITLE[self.language])
+        manual_window.resizable(False, False)
+        logic.place_window_center(manual_window, 900, 720)
+
+        manual_lbl = tk.Label(manual_window, image=manual)
+        manual_lbl.image = manual
+        manual_lbl.place(x=(900 - manual.width()) // 2 - 5)
+
+        # 2 페이지
+        square_progress = tk.PhotoImage(file=Path.SQUARE_PROGRESS)
+        square_progress_lbl = tk.Label(manual_window, image=square_progress)
+        square_progress_lbl.image = square_progress
+
+        # 3 페이지
+        square_word = tk.PhotoImage(file=getattr(Path, f'SQUARE_WORD'))
+        square_word_lbl = tk.Label(manual_window, image=square_word)
+        square_word_lbl.image = square_word
+        square_mean = tk.PhotoImage(file=getattr(Path, f'SQUARE_MEAN_ADD_{self.language}'))
+        square_mean_lbl = tk.Label(manual_window, image=square_mean)
+        square_mean_lbl.image = square_mean
+
+        # 4 페이지
+        square_right_add = tk.PhotoImage(file=Path.SQUARE_RIGHT_ADD)
+        square_right_add_lbl = tk.Label(manual_window, image=square_right_add)
+        square_right_add_lbl.image = square_right_add
+
+        message_lbl = tk.Label(
+            manual_window, bg=Color.DEEP, font=self.font.BODY_SMALL, fg=Color.FONT_RED,
+            text=Text_D.MANUAL_1[self.language]
+        )
+        message_lbl.place(relx=0.5, rely=1.0, anchor='s', y=-75)
+
+        next_btn = tk.Button(
+            manual_window, bg=Color.GREEN, font=self.font.BODY_SMALL,
+            text=Text_D.NEXT[self.language],
+            command=lambda: logic.next_manual_page_add(
+                self, message_lbl, square_progress_lbl, square_word_lbl, square_mean_lbl,
+                square_right_add_lbl, next_btn, manual_window
+            )
+        )
+        next_btn.place(relx=0.5, rely=1.0, anchor='s', y=-10)
 
     def open_confirm_word_window(self):
-        confirm_word_window = tk.Toplevel(self, bg=Color.DARK)
+        confirm_word_window = tk.Toplevel(self)
         confirm_word_window.title(Text_D.TITLE_CONFIRM_WORD_WINDOW[self.language])
         confirm_word_window.resizable(False, False)
         confirm_word_window.grab_set()
@@ -452,7 +560,7 @@ class DailyFrame(tk.Frame):
         body_frm.pack(padx=30, pady=(30, 20), fill='both', expand=True)
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
-        canvas = tk.Canvas(body_frm, bg=Color.DEEP, highlightthickness=0)
+        canvas = tk.Canvas(body_frm, bg=Color.DARK, highlightthickness=0)
         canvas.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
         canvas.pack(side='left', fill='both', expand=True)
 
@@ -462,71 +570,82 @@ class DailyFrame(tk.Frame):
         canvas.configure(yscrollcommand=scrollbar.set)
 
         # Canvas 안에 실제 내용(Frame) 생성
-        main_frm = tk.Frame(canvas, bg=Color.DEEP)
+        main_frm = tk.Frame(canvas, bg=Color.DARK)
         canvas.create_window((0, 0), window=main_frm, anchor='nw')
         main_frm.bind('<Configure>', lambda e: logic.on_configure(e, canvas))
 
+        # today_confirm, today_mean 번호순대로 정렬
         self.today_confirm.sort(key=lambda item: item[0])
         self.today_mean.sort(key=lambda item: item[0])
 
+        # 스크롤바 내부 위젯 배치
         for i in range(len(self.today_confirm)):
+            # 영단어 라벨
             word_lbl = tk.Label(
-                main_frm, bg=Color.DEEP, font = Font_E.BODY, anchor='w',
-                highlightthickness=5, highlightbackground=Color.DEEP,
+                main_frm, bg=Color.DARK, font = Font_E.BODY, anchor='w',
+                highlightthickness=5, highlightbackground=Color.DARK,
                 text=f'{i+1}. {self.today_confirm[i][1]}'
             )
             word_lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
             word_lbl.grid(row=i, column=0, sticky='ew')
+
+            # 버튼
             btn = tk.Button(
                 main_frm, bg=Color.BEIGE, font=self.font.MODIFY_BUTTON, fg=Color.FONT_DARK,
-                text=Text_D.MODYFICATION[self.language]
+                text=Text_D.MODYFICATION[self.language],
+                command=lambda n=i: logic.change_mean(self, n)
             )
             btn.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
             btn.grid(row=i, column=1, padx=(10, 20), pady=4, sticky='ew')
+            self.btn_list.append(btn)
+
+            # 뜻 라벨
             mean_lbl = tk.Label(
-                main_frm, bg=Color.DEEP, font = self.font.BODY, anchor='w',
-                text=self.today_mean[i][1]
+                main_frm, bg=Color.DARK, font=self.font.BODY, anchor='w', text=self.today_mean[i][1]
             )
             mean_lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
             mean_lbl.grid(row=i, column=2, sticky='ew')
+            self.lbl_list.append(mean_lbl)
+
+            # 뜻 엔트리
+            mean_ent = tk.Entry(
+                main_frm, bg=Color.GREY, font=self.font.ENTRY_CONFIRM, insertbackground=Color.FONT_ENTRY,
+                highlightthickness=5, highlightbackground=Color.GREY, highlightcolor=Color.GREY, relief='flat'
+            )
+            mean_ent.insert(0, self.today_mean[i][1])
+            mean_ent.bind('<Return>', lambda event, n=i: logic.change_mean(self, n))
+            mean_ent.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
+            self.ent_list.append(mean_ent)
 
         tk.Button(
             confirm_word_window, bg=Color.GREEN, font=self.font.CONFIRM_BUTTON,
-            text=Text_D.START_TEST[self.language]
+            text=Text_D.START_TEST[self.language],
+            command=lambda: logic.start_test(self, message_lbl, confirm_word_window)
         ).pack(pady=(0, 4))
         message_lbl = tk.Label(
-            confirm_word_window, bg=Color.DARK, fg=Color.FONT_RED, font=self.font.CAPTION_SMALL
+            confirm_word_window, bg=Color.GREY, fg=Color.FONT_RED, font=self.font.CAPTION_SMALL,
         )
         message_lbl.pack(pady=(0, 8))
 
-
-
-
-
 class TestFrame(tk.Frame):
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="#FFF3E0")
+        super().__init__(parent)
         self.controller = controller
-        self.create_widgets()
 
     def create_widgets(self):
-        # 길이가 긴 텍스트 예시
-        text = ("이것은 테스트 화면 예시입니다. 텍스트가 길면 자동으로 줄바꿈이 되도록 "
-                "wraplength를 설정했습니다.")
-        lbl_text = tk.Label(self, text=text, wraplength=400, justify="center")
-        lbl_text.grid(row=0, column=0, columnspan=2, pady=30)
+        body_frm = tk.Frame(self)
+        body_frm.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
+        body_frm.bind('<Button-1>', lambda e: body_frm.focus_set())
 
-        btn_result = tk.Button(self, text="결과 보기",
-                               command=lambda: self.controller.show_frame(ResultFrame))
-        btn_result.grid(row=1, column=0, padx=20, pady=10)
+        title_lbl = tk.Label(body_frm, anchor='w')
+        logic.typing_effect(title_lbl, 'GOOD')
+        title_lbl.pack()
 
-        btn_menu = tk.Button(self, text="메뉴로 돌아가기",
-                             command=lambda: self.controller.show_frame(DailyFrame))
-        btn_menu.grid(row=1, column=1, padx=20, pady=10)
 
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+
+
+
+
 
 
 class ResultFrame(tk.Frame):
