@@ -232,15 +232,15 @@ def change_mean(obj, n):
 # ==============================
 # 프로그램 로직 함수
 # ==============================
-def select_streak_message(check_streak, language):
-    if check_streak == -2:
+def select_streak_message(streak, language):
+    if streak is False:
         return Text_D.INITIAL_LOGIN[language]
-    elif check_streak == -1:
-        return Text_D.TODAY_DONE[language]
-    elif check_streak == 0:
-        return Text_D.STREAK_0[language]
+    elif streak is True:
+        return Text_D.DONE_TODAY[language]
+    elif streak > 0:
+        return f'{streak} {Text_D.STREAK_P[language]}'
     else:
-        return f'{check_streak + 1}{Text_D.STREAK[language]}'
+        return f'{-streak} {Text_D.STREAK_N[language]}'
 
 def _on_decision_click_new(obj, mean, title_lbl, message_lbl, record_frm):
     # today_confirm, today_mean 에 단어 추가
@@ -257,18 +257,18 @@ def _on_decision_click_new(obj, mean, title_lbl, message_lbl, record_frm):
     # 다음단어를 현재단어로 선정
     obj.pointer += 1
 
-    # 다음 단어가 없을경우 db에서 dayword - len(today_confirm)만큼 더 가져옴
+    # 다음 단어가 없을경우 db에서 딱 필요한 만큼 더 가져옴
     if obj.pointer >= len(obj.today_word):
         from connector import take_more_word
-        today_word_temp = take_more_word(obj, message_lbl)
-        if today_word_temp == False:
+        added_word = take_more_word(obj, message_lbl)
+        if added_word is False:
             return
         # db에 더이상 가져올 단어가 없어서 가져왔는데도 불구하고 이전이랑 똑같을 경우 성공
-        if obj.today_word == today_word_temp:
+        if not added_word:
             obj.open_confirm_word_window()
             return
         else:
-            obj.today_word = today_word_temp
+            obj.today_word = obj.today_word + added_word
 
     insert_lbl_list(obj, record_frm)
     selected_scroll_widget(obj)
@@ -418,18 +418,18 @@ def _on_already_click_new(obj, word, message_lbl, record_frm):
     # 다음 단어를 현재단어로 변경
     obj.pointer += 1
 
-    # 다음 단어가 없을경우 db에서 dayword - len(today_confirm)만큼 더 가져옴
+    # 다음 단어가 없을경우 db에서 딱 필요한 만큼 더 가져옴
     if obj.pointer >= len(obj.today_word):
         from connector import take_more_word
-        today_word_temp = take_more_word(obj, message_lbl)
-        if today_word_temp == False:
+        added_word = take_more_word(obj, message_lbl)
+        if added_word is False:
             return
         # db에 더이상 가져올 단어가 없어서 가져왔는데도 불구하고 이전이랑 똑같을 경우 성공
-        if obj.today_word == today_word_temp:
+        if not added_word:
             obj.open_confirm_word_window()
             return
         else:
-            obj.today_word = today_word_temp
+            obj.today_word = obj.today_word + added_word
 
     # 결정된 단어를 오른쪽 리스트에 추가 및 표시
     insert_lbl_list(obj, record_frm)
@@ -533,3 +533,8 @@ def start_test(obj, message_lbl, confirm_word_window):
     test_frm = obj.controller.frames['TestFrame']
     test_frm.create_widgets()
     obj.controller.show_frame('TestFrame')
+
+    print(obj.today_word)
+    print(obj.today_confirm)
+    print(obj.today_mean)
+    print(obj.already_know)

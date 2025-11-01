@@ -189,14 +189,17 @@ def login(obj, username):
 
         # 로그인 성공
         daily_frm = obj.controller.frames['DailyFrame']
-        daily_frm.init_user_data(username, language, dayword, today_word, is_add_yourself, streak)
+        daily_frm.init_data(username, language, dayword, today_word, is_add_yourself, streak)
         daily_frm.create_widgets()
         obj.controller.show_frame('DailyFrame')
-        if streak == -2 and not is_add_yourself:
+        if not streak and not is_add_yourself:
             daily_frm.open_manual_window()
-        if streak == -2 and is_add_yourself:
+        if not streak == -2 and is_add_yourself:
             daily_frm.open_add_yourself_manual_window()
 
+    elif response.status_code == 204:
+        # TODO: 모든 단어가 status == finish 일때
+        pass
     elif response.status_code == 400:
         show_temp_message(obj.message_lbl, response.json().get('message'))
     else:
@@ -210,13 +213,17 @@ def _take_more_word(payload):
     return _request_wrapper('post', URL, payload)
 
 def take_more_word(obj, message_lbl):
-    payload = {'username': obj.username, 'n': len(obj.today_word) + obj.dayword - len(obj.today_confirm)}
+    payload = {
+        'username': obj.username,
+        'today_word': obj.today_word,
+        'necessary': obj.dayword - len(obj.today_confirm)
+    }
     response = _take_more_word(payload)
     if response is None:
         obj.controller.show_overlay('Instance connection failure.')
         return False
     elif response.status_code == 200:
-        return response.json().get('today_word')
+        return response.json().get('added_word')
     elif response.status_code == 400:
         show_temp_message(message_lbl, response.json().get('message'))
         return False

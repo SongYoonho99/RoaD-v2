@@ -159,7 +159,6 @@ class LoginFrame(tk.Frame):
         delete_account_window = tk.Toplevel(self, bg=Color.DARK)
         delete_account_window.title('Delete account')
         delete_account_window.resizable(False, False)
-        delete_account_window.grab_set()
         delete_account_window.bind(
             '<Button-1>',
             lambda e: delete_account_window.focus_set() if e.widget == delete_account_window else None
@@ -250,32 +249,23 @@ class DailyFrame(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        self.bind('<Button-1>', lambda e: self.focus_set())
 
-        self.username = None            # username
-        self.language = None            # 선택언어 (K , J)
-        self.font = None                # 언어에 따른 폰트 (Font_K, Font_J)
-        self.dayword = None             # 오늘의 단어 개수
-        self.today_word = []            # 오늘의 단어로 데이터베이스에서 가져온 리스트
-        self.pointer = 0                # 화면에 표시할 단어의 인덱스
-        self.today_confirm = []         # 오늘의 단어로 확정된 단어리스트
-        self.today_mean = []            # 오늘의 단어 뜻 리스트
-        self.already_know = []          # 이미 아는 단어 리스트
-        self.word_lbl_list = []         # 오른쪽에 표시할 모든 단어라벨
-        self.is_add_yourself = False    # add_yourself 인지 아닌지 (True, False)
-        self.streak = 0                 # 연속 로그인 횟수(n) or 최초로그인(-2) or 오늘이미 완료(-1)
-        self.btn_list = []              # confirm_word_window에서 사용하는 버튼 리스트
-        self.lbl_list = []              # confirm_word_window에서 사용하는 라벨 리스트
-        self.ent_list = []              # confirm_word_window에서 사용하는 엔트리 리스트
-
-    def init_user_data(self, username, language, dayword, today_word, is_add_yourself, streak):
+    def init_data(self, username, language, dayword, today_word, is_add_yourself, streak):
         self.username = username
         self.language = language
         self.font = Font_K if self.language == 'K' else Font_J
         self.dayword = dayword
-        self.today_word = today_word
+        self.today_word = today_word    # 데이터베이스에서 후보로 가져온 단어 리스트
+        self.pointer = 0                # 화면에 표시할 today_word의 인덱스
+        self.today_confirm = []         # 오늘의 단어로 확정된 단어리스트
+        self.today_mean = []            # 오늘의 단어 뜻 리스트
+        self.already_know = []          # 이미 아는 단어 리스트
+        self.word_lbl_list = []         # 오른쪽에 표시할 모든 단어라벨
         self.is_add_yourself = is_add_yourself
         self.streak = streak
+        self.btn_list = []              # confirm_word_window에서 사용하는 버튼 리스트
+        self.lbl_list = []              # confirm_word_window에서 사용하는 라벨 리스트
+        self.ent_list = []              # confirm_word_window에서 사용하는 엔트리 리스트
 
     def create_widgets(self):
         body_frm = tk.Frame(self)
@@ -285,10 +275,9 @@ class DailyFrame(tk.Frame):
         # 제목 라벨
         title_lbl = tk.Label(body_frm, font=self.font.BODY_BIG, anchor='w')
         logic.typing_effect(title_lbl, logic.select_streak_message(self.streak, self.language))
-        if self.streak != -1:
+        if self.streak is not True:
             title_lbl.pack()
         else:
-            title_lbl.pack_forget()
             title_lbl.pack(expand=True)
             return
 
@@ -632,6 +621,9 @@ class TestFrame(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
+    def init_data(self):
+        pass
+
     def create_widgets(self):
         body_frm = tk.Frame(self)
         body_frm.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
@@ -650,17 +642,8 @@ class TestFrame(tk.Frame):
 
 class ResultFrame(tk.Frame):
     def __init__(self, parent, controller):
-        super().__init__(parent, bg="#E8F5E9")
+        super().__init__(parent)
         self.controller = controller
-        self.create_widgets()
 
     def create_widgets(self):
-        lbl_title = tk.Label(self, text="결과 화면", font=("Arial", 16, "bold"))
-        lbl_title.grid(row=0, column=0, pady=30)
-
-        btn_menu = tk.Button(self, text="메뉴로 돌아가기",
-                             command=lambda: self.controller.show_frame(DailyFrame))
-        btn_menu.grid(row=1, column=0, pady=10)
-
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        pass
