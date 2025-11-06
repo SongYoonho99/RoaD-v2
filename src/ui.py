@@ -633,7 +633,7 @@ class TestFrame(tk.Frame):
         logic.typing_effect(title_lbl, 'GOOD')
         title_lbl.pack()
 
-
+ 
 
 
 

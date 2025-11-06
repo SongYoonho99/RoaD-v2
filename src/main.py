@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+# TODO: 해상도에 따라 화면이 같게 보이게하기 from ctypes import windll
 
 from dotenv import load_dotenv
 
@@ -14,6 +15,7 @@ class App:
         self.root.title('RoaD')
         self.root.minsize(1000, 728)
         self.root.state('zoomed')
+
         try:
             self.root.iconbitmap(Path.BI)
         except:
@@ -72,6 +74,7 @@ class App:
         self.root.mainloop()
 
 if __name__ == '__main__':
+    # TODO: windll.shcore.SetProcessDpiAwareness(1)
     load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
     load_ec2_ip()
     app = App()

@@ -203,7 +203,7 @@ def login(obj, username):
     elif response.status_code == 400:
         show_temp_message(obj.message_lbl, response.json().get('message'))
     else:
-        obj.controller.show_overlay('Instance connection failure')
+        obj.controller.show_overlay(response.json().get('message'))
 
 # ==============================
 # take more word
@@ -228,5 +228,49 @@ def take_more_word(obj, message_lbl):
         show_temp_message(message_lbl, response.json().get('message'))
         return False
     else:
+        obj.controller.show_overlay(response.json().get('message'))
+        return False
+    
+# ==============================
+# write today word
+# ==============================
+def _write_today_word(payload):
+    URL = f'{base_URL}write_today_word'
+    return _request_wrapper('post', URL, payload)
+
+def write_today_word(obj):
+    payload = {
+        'username': obj.username,
+        'today_confirm': obj.today_confirm,
+        'today_mean': obj.today_mean,
+        'already_know': obj.already_know,
+        'is_add_yourself': obj.is_add_yourself
+    }
+    response = _write_today_word(payload)
+    if response is None:
         obj.controller.show_overlay('Instance connection failure.')
+        return False
+    elif response.status_code == 201:
+        return True
+    else:
+        obj.controller.show_overlay(response.json().get('message'))
+        return False
+    
+# ==============================
+# get test data
+# ==============================
+def _get_test_data(payload):
+    URL = f'{base_URL}get_test_data'
+    return _request_wrapper('post', URL, payload)
+
+def get_test_data(obj):
+    payload = {'username': obj.username}
+    response = _get_test_data(payload)
+    if response is None:
+        obj.controller.show_overlay('Instance connection failure.')
+        return False
+    elif response.status_code == 200:
+        return response.json()
+    else:
+        obj.controller.show_overlay(response.json().get('message'))
         return False

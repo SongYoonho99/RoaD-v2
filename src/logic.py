@@ -528,13 +528,30 @@ def start_test(obj, message_lbl, confirm_word_window):
     if not all(btn['bg'] == Color.BEIGE for btn in obj.btn_list):
         show_temp_message(message_lbl, Text_D.WARNING_C[obj.language])
         return
-    # TODO:
+
     confirm_word_window.destroy()
+    print(obj.today_confirm)
+    print(obj.today_mean)
+    print(obj.already_know)
+    from connector import write_today_word, get_test_data
+    if not write_today_word(obj):
+        return
+    response = get_test_data(obj)
+    if not response:
+        return
+    first = response.get('first')
+    second = response.get('second')
+    third = response.get('third')
+    fourth = response.get('fourth')
+    fifth = response.get('fifth')
+    
     test_frm = obj.controller.frames['TestFrame']
     test_frm.create_widgets()
     obj.controller.show_frame('TestFrame')
 
-    print(obj.today_word)
-    print(obj.today_confirm)
-    print(obj.today_mean)
-    print(obj.already_know)
+
+    print(first)
+    print(second)
+    print(third)
+    print(fourth)
+    print(fifth)
