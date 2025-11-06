@@ -183,9 +183,22 @@ def login(obj, username):
 
         # 오늘의 단어로 추가할 항목이 없고, add yourself가 아닐때 TODO:
         if not today_word and not is_add_yourself:
+            if not write_today_word(obj):
+                return
+            response = get_test_data(obj)
+            if response is False:
+                return
+            
             test_frm = obj.controller.frames['TestFrame']
+            test_frm.init_data(
+                obj.username, obj.language, obj.is_add_yourself, obj.today_confirm,
+                response.get('first'), response.get('second'), response.get('third'),
+                response.get('fourth'), response.get('fifth'), obj.streak
+            )
             test_frm.create_widgets()
             obj.controller.show_frame('TestFrame')
+            
+            return
 
         # 로그인 성공
         daily_frm = obj.controller.frames['DailyFrame']
@@ -242,7 +255,6 @@ def write_today_word(obj):
     payload = {
         'username': obj.username,
         'today_confirm': obj.today_confirm,
-        'today_mean': obj.today_mean,
         'already_know': obj.already_know,
         'is_add_yourself': obj.is_add_yourself
     }

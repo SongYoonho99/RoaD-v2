@@ -258,7 +258,6 @@ class DailyFrame(tk.Frame):
         self.today_word = today_word    # 데이터베이스에서 후보로 가져온 단어 리스트
         self.pointer = 0                # 화면에 표시할 today_word의 인덱스
         self.today_confirm = []         # 오늘의 단어로 확정된 단어리스트
-        self.today_mean = []            # 오늘의 단어 뜻 리스트
         self.already_know = []          # 이미 아는 단어 리스트
         self.word_lbl_list = []         # 오른쪽에 표시할 모든 단어라벨
         self.is_add_yourself = is_add_yourself
@@ -277,7 +276,7 @@ class DailyFrame(tk.Frame):
         logic.typing_effect(title_lbl, logic.select_streak_message(self.streak, self.language))
         if self.streak is not True:
             title_lbl.pack()
-        else:
+        else: # 오늘 이미 했을 경우
             title_lbl.pack(expand=True)
             return
 
@@ -304,7 +303,7 @@ class DailyFrame(tk.Frame):
 
             # 영단어 라벨
             self.word_lbl = tk.Label(
-                word_frm, bg=Color.DARK, font=Font_E.BODY_WORD, text=self.today_word[self.pointer][1]
+                word_frm, bg=Color.DARK, font=Font_E.BODY_WORD, text=self.today_word[self.pointer]
             )
             self.word_lbl.pack(side='left')
 
@@ -317,7 +316,7 @@ class DailyFrame(tk.Frame):
             speaker_lbl = tk.Label(word_frm, bg=Color.DARK, image=self.controller.speaker_icon)
             speaker_lbl.pack(side='top')
             speaker_lbl.bind(
-                '<Button-1>', lambda e: logic.play_pronunciation(self, self.word_lbl.cget('text'))
+                '<Button-1>', lambda e: logic.play_pronunciation(self)
             )
         else:
             # 영단어 입력창
@@ -326,6 +325,10 @@ class DailyFrame(tk.Frame):
                 highlightthickness=2, highlightbackground=Color.GREY, highlightcolor=Color.GREY
             )
             self.word_ent.pack(pady=(0, 90))
+            self.word_ent.bind('<Return>', lambda e: logic.on_decision_click(
+                    self, title_lbl, message_lbl, tip_lbl, record_frm
+                )
+            )
             logic.limit_entry_length(self.word_ent, 20)
 
         # 뜻 입력창, 버튼 이미 아는 단어 라벨을 담는 프레임
@@ -544,6 +547,7 @@ class DailyFrame(tk.Frame):
             lambda e: confirm_word_window.focus_set() if e.widget == confirm_word_window else None
         )
         logic.place_window_center(confirm_word_window, 700, 635)
+        # confirm_word_window.protocol(WM_DELETE_WINDOW, lambda: None)
 
         body_frm = tk.Frame(confirm_word_window)
         body_frm.pack(padx=30, pady=(30, 20), fill='both', expand=True)
@@ -563,17 +567,13 @@ class DailyFrame(tk.Frame):
         canvas.create_window((0, 0), window=main_frm, anchor='nw')
         main_frm.bind('<Configure>', lambda e: logic.on_configure(e, canvas))
 
-        # today_confirm, today_mean 번호순대로 정렬
-        self.today_confirm.sort(key=lambda item: item[0])
-        self.today_mean.sort(key=lambda item: item[0])
-
         # 스크롤바 내부 위젯 배치
         for i in range(len(self.today_confirm)):
             # 영단어 라벨
             word_lbl = tk.Label(
                 main_frm, bg=Color.DARK, font = Font_E.BODY, anchor='w',
                 highlightthickness=5, highlightbackground=Color.DARK,
-                text=f'{i+1}. {self.today_confirm[i][1]}'
+                text=f'{i+1}. {self.today_confirm[i][0]}'
             )
             word_lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
             word_lbl.grid(row=i, column=0, sticky='ew')
@@ -590,7 +590,7 @@ class DailyFrame(tk.Frame):
 
             # 뜻 라벨
             mean_lbl = tk.Label(
-                main_frm, bg=Color.DARK, font=self.font.BODY, anchor='w', text=self.today_mean[i][1]
+                main_frm, bg=Color.DARK, font=self.font.BODY, anchor='w', text=self.today_confirm[i][1]
             )
             mean_lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
             mean_lbl.grid(row=i, column=2, sticky='ew')
@@ -601,8 +601,8 @@ class DailyFrame(tk.Frame):
                 main_frm, bg=Color.GREY, font=self.font.ENTRY_CONFIRM, insertbackground=Color.FONT_ENTRY,
                 highlightthickness=5, highlightbackground=Color.GREY, highlightcolor=Color.GREY, relief='flat'
             )
-            mean_ent.insert(0, self.today_mean[i][1])
-            mean_ent.bind('<Return>', lambda event, n=i: logic.change_mean(self, n))
+            mean_ent.insert(0, self.today_confirm[i][1])
+            mean_ent.bind('<Return>', lambda e, n=i: logic.change_mean(self, n))
             mean_ent.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, canvas))
             self.ent_list.append(mean_ent)
 
@@ -621,8 +621,21 @@ class TestFrame(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-    def init_data(self):
-        pass
+    def init_data(
+            self, username, language, is_add_yourself, today_confirm,
+            first, second, third, fourth, fifth, streak
+        ):
+        self.username = username
+        self.language = language
+        self.font = Font_K if self.language == 'K' else Font_J
+        self.is_add_yourself = is_add_yourself
+        self.today_confirm = today_confirm
+        self.first = first
+        self.second = second
+        self.third = third
+        self.fourth = fourth
+        self.fifth = fifth
+        self.streak = streak
 
     def create_widgets(self):
         body_frm = tk.Frame(self)
@@ -633,6 +646,8 @@ class TestFrame(tk.Frame):
         logic.typing_effect(title_lbl, 'GOOD')
         title_lbl.pack()
 
+    def set_init_widgets(self):
+        pass
  
 
 

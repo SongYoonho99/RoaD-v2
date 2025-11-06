@@ -128,9 +128,8 @@ def typing_effect(label, text, delay=75):
     inner()
 
 def copy_word(obj, event):
-    text_to_copy = obj.word_lbl.cget('text')
     obj.clipboard_clear()
-    obj.clipboard_append(text_to_copy)
+    obj.clipboard_append(obj.word_lbl.cget('text'))
     event.widget.config(image=obj.controller.check_icon)
     event.widget.after(2000, lambda: event.widget.config(image=obj.controller.copy_icon))
 
@@ -145,13 +144,13 @@ def copy_url(obj, event):
     event.widget.config(image=obj.controller.check_icon)
     event.widget.after(2000, lambda: event.widget.config(image=obj.controller.copy_icon))
 
-def play_pronunciation(obj, word):
+def play_pronunciation(obj):
     if obj.controller.audio:
-        tts = gTTS(text=word, lang='en')
+        tts = gTTS(text=obj.word_lbl.cget('text'), lang='en')
         mp3_crt = BytesIO()
         tts.write_to_fp(mp3_crt)
         mp3_crt.seek(0)
-        mixer.music.load(mp3_crt, "mp3")
+        mixer.music.load(mp3_crt, 'mp3')
         mixer.music.play()
 
 def on_mousewheel(event, canvas):
@@ -178,7 +177,7 @@ def insert_lbl_list(obj, record_frm):
     lbl = tk.Label(
         record_frm, bg=Color.DEEP, font=Font_E.BODY, anchor='w',
         highlightthickness=5, highlightbackground=Color.DEEP, 
-        text=f'{obj.pointer + 1}. {obj.today_word[obj.pointer][1]}'
+        text=f'{obj.pointer + 1}. {obj.today_word[obj.pointer]}'
     )
     lbl.pack(padx=(4, 0), fill='x')
     lbl.bind('<MouseWheel>', lambda e: on_mousewheel(e, obj.canvas))
@@ -208,6 +207,22 @@ def insert_lbl_list_add_yourself(obj, record_frm):
         lambda *_: obj.word_lbl_list[obj.pointer].config(text=f'{obj.pointer + 1}. {text_var.get()}')
     )
 
+def renew_wordlbl_meanent(obj):
+    obj.word_lbl.config(text=obj.today_word[obj.pointer])
+    obj.mean_ent.delete(0, 'end')
+    for w, m in obj.today_confirm:
+        if w == obj.today_word[obj.pointer]:
+            obj.mean_ent.insert(0, m)
+            break
+        
+def renew_ent_add_yourself(obj):
+    obj.word_ent.delete(0, 'end')
+    if obj.pointer < len(obj.today_confirm):
+        obj.word_ent.insert(0, obj.today_confirm[obj.pointer][0])
+    obj.mean_ent.delete(0, 'end')
+    if obj.pointer < len(obj.today_confirm):
+        obj.mean_ent.insert(0, obj.today_confirm[obj.pointer][1])
+
 def selected_scroll_widget(obj):
     '''pointer가 가르키는 스크롤바 내 라벨색상을 DAKR, 그 외에는 DEEP'''
     for i, lbl in enumerate(obj.word_lbl_list):
@@ -223,10 +238,10 @@ def change_mean(obj, n):
         obj.ent_list[n].grid(row=n, column=2, sticky='ew')
         obj.ent_list[n].focus_set()
     else:
-        obj.today_mean[n][1] = obj.ent_list[n].get()
+        obj.today_confirm[n][1] = obj.ent_list[n].get()
         obj.btn_list[n].config(bg=Color.BEIGE)
         obj.ent_list[n].grid_forget()
-        obj.lbl_list[n].config(text=obj.today_mean[n][1])
+        obj.lbl_list[n].config(text=obj.today_confirm[n][1])
         obj.lbl_list[n].grid(row=n, column=2, sticky='ew')
 
 # ==============================
@@ -242,23 +257,20 @@ def select_streak_message(streak, language):
     else:
         return f'{-streak} {Text_D.STREAK_N[language]}'
 
-def _on_decision_click_new(obj, mean, title_lbl, message_lbl, record_frm):
-    # today_confirm, today_mean 에 단어 추가
-    obj.today_confirm.append(obj.today_word[obj.pointer])
-    obj.today_mean.append([obj.pointer + 1, mean])
+def _on_decision_click_new(obj, word, mean, message_lbl, record_frm):
+    # today_confirm 에 단어 추가
+    obj.today_confirm.append([word, mean])
     obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_GREEN)
 
     # 오늘의 단어 dayword개 채우기 성공
     if len(obj.today_confirm) == obj.dayword:
-        obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
         obj.open_confirm_word_window()
         return
 
-    # 다음단어를 현재단어로 선정
     obj.pointer += 1
 
     # 다음 단어가 없을경우 db에서 딱 필요한 만큼 더 가져옴
-    if obj.pointer >= len(obj.today_word):
+    if obj.pointer == len(obj.today_word):
         from connector import take_more_word
         added_word = take_more_word(obj, message_lbl)
         if added_word is False:
@@ -267,132 +279,75 @@ def _on_decision_click_new(obj, mean, title_lbl, message_lbl, record_frm):
         if not added_word:
             obj.open_confirm_word_window()
             return
-        else:
-            obj.today_word = obj.today_word + added_word
+        obj.today_word += added_word
 
     insert_lbl_list(obj, record_frm)
-    selected_scroll_widget(obj)
 
-    # 제목, 진행률, 영단어, 뜻 입력창 갱신
-    title_lbl.config(text=f'{Text_D.TITLE1[obj.language]} {obj.dayword}{Text_D.TITLE2[obj.language]}')
-    obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
-    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-    obj.mean_ent.delete(0, 'end')
-
-def _on_decision_click_confirm(obj, mean):
+def _on_decision_click_confirm(obj, word, mean):
     # today_mean 갱신
-    for i, item in enumerate(obj.today_mean):
-        if item[0] == obj.pointer + 1:
-            obj.today_mean[i] = [item[0], mean]
+    for i, (w, _) in enumerate(obj.today_confirm):
+        if w == word:
+            obj.today_confirm[i][1] = mean
             break
 
-    # 다음단어를 현재단어로 선정
     obj.pointer += 1
 
-    # 현재 단어에 스크롤위젯 포커싱
-    selected_scroll_widget(obj)
-
-    # 진행률, 영단어, 뜻 입력창 갱신
-    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-    for item in obj.today_mean:
-        if item[0] == obj.pointer + 1:
-            obj.mean_ent.delete(0, 'end')
-            obj.mean_ent.insert(0, item[1])
-            break
-    else:
-        obj.mean_ent.delete(0, 'end')
-
-def _on_decision_click_already(obj, mean):
-    # today_confirm, today_mean 에 단어 추가 & already_know 에서 단어 삭제
-    obj.today_confirm.append(obj.today_word[obj.pointer])
-    obj.today_mean.append([obj.pointer + 1, mean])
-    obj.already_know = [i for i in obj.already_know if i[0] != obj.pointer + 1]
+def _on_decision_click_already(obj, word, mean):
+    # today_confirm 에 단어 추가 & already_know 에서 단어 삭제
+    obj.today_confirm.append([word, mean])
+    obj.already_know = [w for w in obj.already_know if w != word]
     obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_GREEN)
 
     # 오늘의 단어 dayword개 채우기 성공
     if len(obj.today_confirm) == obj.dayword:
-        obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
         obj.word_lbl_list[-1].destroy()
         obj.word_lbl_list.pop()
         obj.open_confirm_word_window()
         return
     
-    # 오늘의 단어의 조회위치를 가르키는 포인터 += 1
     obj.pointer += 1
-    selected_scroll_widget(obj)
 
-    # 진행률, 영단어, 뜻 입력창 갱신
-    obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
-    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-    for item in obj.today_mean:
-        if item[0] == obj.pointer + 1:
-            obj.mean_ent.delete(0, 'end')
-            obj.mean_ent.insert(0, item[1])
-            break
-    else:
-        obj.mean_ent.delete(0, 'end')
-
-def _on_decision_click_add(obj, word, mean, title_lbl, record_frm):
+def _on_decision_click_add(obj, word, mean, record_frm):
     # 새로운 단어일 경우 리스트에 단어와 뜻을 추가
-    if obj.pointer >= len(obj.today_confirm):
-        obj.today_confirm.append([obj.pointer + 1, word])
-        obj.today_mean.append([obj.pointer + 1, mean])
+    if obj.pointer == len(obj.today_confirm):
+        obj.today_confirm.append([word, mean])
         obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_GREEN)
 
         # 오늘의 단어 dayword개 채우기 성공
         if len(obj.today_confirm) == obj.dayword:
-            obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
             obj.open_confirm_word_window()
             return
     
     # 새로운 단어가 아닐 경우 갱신
     else:
-        for item in obj.today_confirm:
-            if item[0] == obj.pointer + 1:
-                obj.today_confirm[obj.pointer] = [item[0], word]
-                break
-        for item in obj.today_mean:
-            if item[0] == obj.pointer + 1:
-                obj.today_mean[obj.pointer] = [item[0], mean]
-                break
+        obj.today_confirm[obj.pointer] = [word, mean]
     
-    # 다음단어를 현재단어로 선정
     obj.pointer += 1
-    if obj.pointer >= len(obj.word_lbl_list):
+    if obj.pointer == len(obj.word_lbl_list):
         insert_lbl_list_add_yourself(obj, record_frm)
-    selected_scroll_widget(obj)
-
-    # 제목, 진행률, 영단어 입력창, 뜻 입력창, 팁 갱신
-    title_lbl.config(text=f'{Text_D.TITLE1[obj.language]} {obj.dayword}{Text_D.TITLE2[obj.language]}')
-    obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
-    if obj.pointer >= len(obj.today_confirm):
-        obj.word_ent.delete(0, 'end')
-        obj.mean_ent.delete(0, 'end')
-    else:
-        obj.word_ent.delete(0, 'end')
-        obj.word_ent.insert(0, obj.today_confirm[obj.pointer][1])
-        obj.mean_ent.delete(0, 'end')
-        obj.mean_ent.insert(0, obj.today_mean[obj.pointer][1])
-    obj.word_ent.focus()
 
 def on_decision_click(obj, title_lbl, message_lbl, tip_lbl, record_frm):
     if obj.is_add_yourself is False:
         word = obj.today_word[obj.pointer]
         mean = obj.mean_ent.get()
+
         if not mean:
             show_temp_message(message_lbl, Text_D.WARNING_M[obj.language])
             return
         
-        if word not in obj.today_confirm and word not in obj.already_know:
-            _on_decision_click_new(obj, mean, title_lbl, message_lbl, record_frm)
-        elif word in obj.today_confirm:
-            _on_decision_click_confirm(obj, mean)
+        if all(word != w[0] for w in obj.today_confirm) and word not in obj.already_know:
+            _on_decision_click_new(obj, word, mean, message_lbl, record_frm)
+        elif any(word == w[0] for w in obj.today_confirm):
+            _on_decision_click_confirm(obj, word, mean)
         else:
-            _on_decision_click_already(obj, mean)
+            _on_decision_click_already(obj, word, mean)
+        
+        renew_wordlbl_meanent(obj)
     
     else:
         word = obj.word_ent.get()
         mean = obj.mean_ent.get()
+
         if not word:
             show_temp_message(message_lbl, Text_D.WARNING_W[obj.language])
             return
@@ -402,12 +357,17 @@ def on_decision_click(obj, title_lbl, message_lbl, tip_lbl, record_frm):
         if not mean:
             show_temp_message(message_lbl, Text_D.WARNING_M[obj.language])
             return
-        if any(word == w[1] for i, w in enumerate(obj.today_confirm) if i != obj.pointer):
+        if any(word == w[0] for i, w in enumerate(obj.today_confirm) if i != obj.pointer):
             show_temp_message(message_lbl, Text_D.WARNING_D[obj.language])
             return
         
-        _on_decision_click_add(obj, word, mean, title_lbl, record_frm)
+        _on_decision_click_add(obj, word, mean, record_frm)
+        renew_ent_add_yourself(obj)
+        obj.word_ent.focus()
 
+    selected_scroll_widget(obj)
+    title_lbl.config(text=f'{Text_D.TITLE1[obj.language]} {obj.dayword}{Text_D.TITLE2[obj.language]}')
+    obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
     show_daily_tip(obj, tip_lbl)
 
 def _on_already_click_new(obj, word, message_lbl, record_frm):
@@ -415,7 +375,6 @@ def _on_already_click_new(obj, word, message_lbl, record_frm):
     obj.already_know.append(word)
     obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_BLUE)
 
-    # 다음 단어를 현재단어로 변경
     obj.pointer += 1
 
     # 다음 단어가 없을경우 db에서 딱 필요한 만큼 더 가져옴
@@ -428,101 +387,55 @@ def _on_already_click_new(obj, word, message_lbl, record_frm):
         if not added_word:
             obj.open_confirm_word_window()
             return
-        else:
-            obj.today_word = obj.today_word + added_word
+        obj.today_word = obj.today_word + added_word
 
-    # 결정된 단어를 오른쪽 리스트에 추가 및 표시
     insert_lbl_list(obj, record_frm)
-    # 현재 단어에 스크롤위젯 포커싱
-    selected_scroll_widget(obj)
-
-    # 영단어, 뜻 입력창, 팁 갱신
-    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-    obj.mean_ent.delete(0, 'end')
 
 def _on_already_click_confirm(obj, word):
     # today_confirm 에서 단어 제거 & already_know 에 단어 추가
-    obj.today_confirm = [i for i in obj.today_confirm if i[0] != obj.pointer + 1]
-    obj.today_mean = [i for i in obj.today_mean if i[0] != obj.pointer + 1]
+    obj.today_confirm = [i for i in obj.today_confirm if i[0] != word]
     obj.already_know.append(word)
     obj.word_lbl_list[obj.pointer].config(fg=Color.FONT_BLUE)
 
-    # 다음 단어를 현재단어로 변경
     obj.pointer += 1
-    selected_scroll_widget(obj)
-
-    # 진행률-1, 영단어, 뜻 입력창, 팁 갱신
-    obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
-    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-    for item in obj.today_mean:
-        if item[0] == obj.pointer + 1:
-            obj.mean_ent.delete(0, 'end')
-            obj.mean_ent.insert(0, item[1])
-            break
-    else:
-        obj.mean_ent.delete(0, 'end')
 
 def _on_already_click_already(obj):
-    # 다음 단어를 현재단어로 변경
     obj.pointer += 1
-    selected_scroll_widget(obj)
-
-    # 영단어, 뜻 입력창, 팁 갱신
-    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-    for item in obj.today_mean:
-        if item[0] == obj.pointer + 1:
-            obj.mean_ent.delete(0, 'end')
-            obj.mean_ent.insert(0, item[1])
-            break
-    else:
-        obj.mean_ent.delete(0, 'end')
 
 def on_already_click(obj, tip_lbl, message_lbl, record_frm):
     word = obj.today_word[obj.pointer]
 
-    if word not in obj.today_confirm and word not in obj.already_know:
+    if all(word != w[0] for w in obj.today_confirm) and word not in obj.already_know:
         _on_already_click_new(obj, word, message_lbl, record_frm)
-    elif word in obj.today_confirm:
+    elif any(word == w[0] for w in obj.today_confirm):
         _on_already_click_confirm(obj, word)
     else:
         _on_already_click_already(obj)
 
+    selected_scroll_widget(obj)
+    obj.progress_lbl.config(text=f'{len(obj.today_confirm)} / {obj.dayword}')
+    renew_wordlbl_meanent(obj) 
     show_daily_tip(obj, tip_lbl)
 
 def click_word_lbl(obj, n):
-    if obj.pointer != n:
+    if obj.pointer == n:
+        return
+    
+    prev = obj.pointer
+    obj.pointer = n   
+
+    if obj.is_add_yourself is False:
+        renew_wordlbl_meanent(obj)
+    else:
         # add yourself에서 StringVar 때문에 저장하지 않은 글자가 오른쪽리스트에 반영되는 문제 해결
-        if obj.is_add_yourself and obj.pointer < len(obj.today_confirm) - 1:
-            obj.word_lbl_list[obj.pointer].config(text=f'{obj.pointer + 1}. {obj.today_confirm[obj.pointer][1]}')
-
-        obj.pointer = n
-
-        # add yourself == False 일 경우, word_ent 조정
-        if not obj.is_add_yourself:
-            for item in obj.today_word:
-                if item[0] == obj.pointer + 1:
-                    obj.word_lbl.config(text=obj.today_word[obj.pointer][1])
-                    break
-        # add yourself == True 일 경우, word_lbl 조정
+        if prev == len(obj.today_confirm):
+            obj.word_lbl_list[prev].config(text=f'{prev + 1}. ')
         else:
-            for item in obj.today_confirm:
-                if item[0] == obj.pointer + 1:
-                    obj.word_ent.delete(0, 'end')
-                    obj.word_ent.insert(0, item[1])
-                    break
-            else:
-                obj.word_ent.delete(0, 'end')
+            obj.word_lbl_list[prev].config(text=f'{prev + 1}. {obj.today_confirm[prev][0]}')
 
-        # mean_ent 조정
-        for item in obj.today_mean:
-            if item[0] == obj.pointer + 1:
-                obj.mean_ent.delete(0, 'end')
-                obj.mean_ent.insert(0, item[1])
-                break
-        else:
-            obj.mean_ent.delete(0, 'end')
+        renew_ent_add_yourself(obj)
 
-        selected_scroll_widget(obj)
+    selected_scroll_widget(obj)
 
 def start_test(obj, message_lbl, confirm_word_window):
     if not all(btn['bg'] == Color.BEIGE for btn in obj.btn_list):
@@ -530,28 +443,20 @@ def start_test(obj, message_lbl, confirm_word_window):
         return
 
     confirm_word_window.destroy()
-    print(obj.today_confirm)
-    print(obj.today_mean)
-    print(obj.already_know)
+
     from connector import write_today_word, get_test_data
     if not write_today_word(obj):
         return
     response = get_test_data(obj)
-    if not response:
+    if response is False:
         return
-    first = response.get('first')
-    second = response.get('second')
-    third = response.get('third')
-    fourth = response.get('fourth')
-    fifth = response.get('fifth')
     
     test_frm = obj.controller.frames['TestFrame']
+    test_frm.init_data(
+        obj.username, obj.language, obj.is_add_yourself, obj.today_confirm,
+        response.get('first'), response.get('second'), response.get('third'),
+        response.get('fourth'), response.get('fifth'), obj.streak
+    )
     test_frm.create_widgets()
+    test_frm.set_init_widgets()
     obj.controller.show_frame('TestFrame')
-
-
-    print(first)
-    print(second)
-    print(third)
-    print(fourth)
-    print(fifth)
