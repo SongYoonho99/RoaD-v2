@@ -144,9 +144,9 @@ def copy_url(obj, event):
     event.widget.config(image=obj.controller.check_icon)
     event.widget.after(2000, lambda: event.widget.config(image=obj.controller.copy_icon))
 
-def play_pronunciation(obj):
+def play_pronunciation(obj, word):
     if obj.controller.audio:
-        tts = gTTS(text=obj.word_lbl.cget('text'), lang='en')
+        tts = gTTS(text=word, lang='en')
         mp3_crt = BytesIO()
         tts.write_to_fp(mp3_crt)
         mp3_crt.seek(0)
@@ -168,6 +168,15 @@ def show_daily_tip(obj, tip_lbl):
     tip_attrs = [
         v for k, v in Tip.__dict__.items()
         if (k.startswith('TIP_D') or k.startswith('TIP_B')) and isinstance(v, dict)
+    ]
+    tip = random.choice(tip_attrs)
+    tip_lbl.config(text=tip[obj.language])
+
+def show_test_tip(obj, tip_lbl):
+    '''TIP_D 또는 TIP_B로 시작하는 항목 중 하나를 랜덤 출력'''
+    tip_attrs = [
+        v for k, v in Tip.__dict__.items()
+        if (k.startswith('TIP_T') or k.startswith('TIP_B')) and isinstance(v, dict)
     ]
     tip = random.choice(tip_attrs)
     tip_lbl.config(text=tip[obj.language])

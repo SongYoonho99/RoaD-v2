@@ -183,8 +183,6 @@ def login(obj, username):
 
         # 오늘의 단어로 추가할 항목이 없고, add yourself가 아닐때 TODO:
         if not today_word and not is_add_yourself:
-            if not write_today_word(obj):
-                return
             response = get_test_data(obj)
             if response is False:
                 return
