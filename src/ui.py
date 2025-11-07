@@ -638,7 +638,7 @@ class TestFrame(tk.Frame):
         self.streak = streak
 
     def create_widgets(self):
-        body_frm = tk.Frame(self)
+        body_frm = tk.Frame(self, bg='yellow')
         body_frm.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
         body_frm.bind('<Button-1>', lambda e: body_frm.focus_set())
 
@@ -664,7 +664,7 @@ class TestFrame(tk.Frame):
 
         # 영단어와 스피커를 담는 프레임
         word_frm = tk.Frame(left_frm, bg=Color.DARK)
-        word_frm.pack(pady=(0, 70))
+        word_frm.pack(pady=(0, 45))
 
         # 영단어 라벨
         self.word_lbl = tk.Label(
@@ -681,7 +681,7 @@ class TestFrame(tk.Frame):
 
         # 뜻 입력창 프레임
         self.input_frm = tk.Frame(left_frm, bg=Color.DARK)
-        # self.input_frm.pack(padx=55, pady=(55, 120))
+        self.input_frm.pack(padx=55, pady=(80, 120))
 
         # 뜻 입력창
         mean_ent = tk.Entry(
@@ -697,12 +697,12 @@ class TestFrame(tk.Frame):
 
         # 결정 버튼
         tk.Button(
-            self.input_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_D.CONFIRM[self.language],
+            self.input_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_T.CONFIRM[self.language],
         ).grid(row=1, column=1)
 
         # 채점결과 프레임
         self.review_frm = tk.Frame(left_frm, bg=Color.DARK)
-        self.review_frm.pack(padx=25, pady=(0, 37))
+        # self.review_frm.pack(padx=25, pady=(0, 17))
 
         # 채점 결과 라벨
         tk.Label(
@@ -715,7 +715,7 @@ class TestFrame(tk.Frame):
         self.result_lbl = tk.Label(
             self.review_frm, bg=Color.DARK, font=Font_E.REVIEW, fg=Color.FONT_RED, text='X'
         )
-        self.result_lbl.grid(row=0, column=2, padx=(0, 454), pady=5, sticky='w')
+        self.result_lbl.grid(row=0, column=2, padx=(0, 501), pady=5, sticky='w')
 
         # 정오답, 유저의 입력 라벨
         tk.Label(
@@ -748,15 +748,20 @@ class TestFrame(tk.Frame):
         tk.Label(
             self.review_frm, bg=Color.DARK, font=self.font.REVIEW,
             text=Text_T.COMMENT[self.language]
-        ).grid(row=3, column=0, pady=5, sticky='w')
+        ).grid(row=3, column=0, pady=(5, 18), sticky='w')
         tk.Label(
             self.review_frm, bg=Color.DARK, font=self.font.REVIEW, text=':'
-        ).grid(row=3, column=1, padx=5, pady=5)
+        ).grid(row=3, column=1, padx=5, pady=(5, 18))
         self.comment_lbl = tk.Label(
             self.review_frm, bg=Color.DARK, font=self.font.REVIEW,
-            text='정확합니다.'
+            text='play는 "놀다" 라는 동사로 "놀음"은 명사입니다.'
         )
-        self.comment_lbl.grid(row=3, column=2, pady=5, sticky='w')
+        self.comment_lbl.grid(row=3, column=2, pady=(5, 18), sticky='w')
+
+        # 다음 버튼
+        tk.Button(
+            self.review_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_T.NEXT[self.language],
+        ).grid(row=4, columnspan=3, pady=(0, 10))
 
         # 팁 라벨
         tip_lbl = tk.Label(left_frm, bg=Color.DARK, font=self.font.TIP)

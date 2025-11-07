@@ -53,7 +53,7 @@ class Font_E:
     VERSION = ('Kristen ITC', 18)
     ENTRY_USERNAME = ('Bahnschrift', 26)
     ENTRY_DELETE = ('Bahnschrift', 22)
-    REVIEW = ('Bahnschrift', 22)
+    REVIEW = ('Bahnschrift', 15)
     BUTTON = ('Arial', 20, 'bold')
     BODY_PROGRESS = ('Bahnschrift', 35, 'bold')
     BODY_WORD = ('Bahnschrift', 45, 'bold')
@@ -71,7 +71,7 @@ class Font_K:
     BODY_BIG = ('가비아 사이', 30)
     CAPTION = ('가비아 사이', 12)
     ENTRY = ('가비아 사이', 22)
-    REVIEW = ('가비아 사이', 22)
+    REVIEW = ('가비아 사이', 15)
     CONFIRM_BUTTON = ('가비아 사이', 22)
     BODY = ('가비아 사이', 20)
     BODY_SMALL = ('가비아 사이', 18)
@@ -86,7 +86,7 @@ class Font_J:
     BODY_BIG = ('UD デジタル 教科書体 N', 30)
     CAPTION = ('UD デジタル 教科書体 N', 12)
     ENTRY = ('UD デジタル 教科書体 N', 22)
-    REVIEW = ('UD デジタル 教科書体 N', 22)
+    REVIEW = ('UD デジタル 教科書体 N', 15)
     CONFIRM_BUTTON = ('UD デジタル 教科書体 N', 22)
     BODY = ('UD デジタル 教科書体 N', 20)
     BODY_SMALL = ('UD デジタル 教科書体 N', 18)
@@ -225,6 +225,10 @@ class Text_T:
         'K': '복습 테스트',
         'J': '復習テスト'
     }
+    CONFIRM = {
+        'K': '결정',
+        'J': '決定'
+    }
     RESULT = {
         'K': '채점 결과',
         'J': '採点結果'
@@ -240,6 +244,10 @@ class Text_T:
     COMMENT = {
         'K': '코멘트',
         'J': 'コメント'
+    }
+    NEXT = {
+        'K': '다음 문제',
+        'J': '次の問題'
     }
 
 class Tip:
