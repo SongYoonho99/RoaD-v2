@@ -225,6 +225,26 @@ class Text_T:
         'K': '복습 테스트',
         'J': '復習テスト'
     }
+    TODAY = {
+        'K': '오늘',
+        'J': '今日'
+    }
+    DATE_TEXT1 = {
+        'K': ' 에 외운 단어, ',
+        'J': ' に覚えた単語、'
+    }
+    DATE_TEXT2 = {
+        'K': '번째 복습',
+        'J': '番目復習'
+    }
+    DATE_TEXT3 = {
+        'K': '마지막 복습',
+        'J': '最後の復習'
+    }
+    DATE_TODAY = {
+        'K': '오늘 등록한 단어',
+        'J': '今日登録した単語'
+    }
     CONFIRM = {
         'K': '결정',
         'J': '決定'
@@ -249,6 +269,10 @@ class Text_T:
         'K': '다음 문제',
         'J': '次の問題'
     }
+    GEMINI_ERROR = {
+        'K': '채점 과정 오류 발생',
+        'J': '採点途中エラー発生'
+    }
 
 class Tip:
     '''Tip 라벨 랜덤출력 문구 모음'''
@@ -267,6 +291,10 @@ class Tip:
     TIP_D4 = {
         'K': 'Tip. 오른쪽에 단어리스트를 누르면 해당단어화면으로 전환됩니다.',
         'J': 'Tip. 右の単語リストを押すと、該当の単語画面に移ります。'
+    }
+    TIP_D5 = {
+        'K': 'Tip. 등록한 모범답안은 나중에 변경할 수 없으니 신중하게 등록해 주세요.',
+        'J': 'Tip. 登録した模範解答は決定されたら変更ができませんので、慎重に登録してください。'
     }
     TIP_T1 = {
         'K': 'Tip. 복습테스트의 채점은 AI가 진행 합니다.',
@@ -288,6 +316,10 @@ class Tip:
         'K': 'Tip. 오른쪽에 단어리스트를 누르면 해당 단어 리뷰 화면으로 전환됩니다.',
         'J': 'Tip. 右の単語リストを押すと、該当の単語のレビュー画面に移ります。'
     }
+    TIP_T6 = {
+        'K': 'Tip. 테스트 종료 후 틀린 단어는 꼭 다시 한번 확인합시다!',
+        'J': 'Tip. テスト終了後、間違えた単語は必ずもう一回確認しましょう！'
+    }
     TIP_B1 = {
         'K': 'Tip. 오늘의 단어 추가 화면에서 유저가 입력한 뜻이 모범답안으로 사용됩니다.',
         'J': 'Tip. 今日の単語追加画面でユーザーが入力した意味が、模範解答になります。'
@@ -308,3 +340,26 @@ class Tip:
         'K': 'Tip. 입력칸에 한글입력시 디자인이 깨지는건 죄송합니다... 안 고쳐지네요.',
         'J': 'Tip. 入力欄に日本語入力のとき、デザインが悪いのはごめんなさい。。治せなくて。'
     }
+
+Gemini_instruction = {
+    'K':'''
+You are an objective and fair English vocabulary grader.
+**Task:** Evaluate the user's provided JSON data, which contains an 'english_word' and the student's 'student's_answer' (in Korean).
+**Constraint 1:** Based on the standard meaning and **Part of Speech (e.g., noun, verb, adjective) of the 'english_word'**, determine if the 'student's_answer' is correct.
+**Constraint 2:** The output must consist only of a single character ('O' for correct, 'X' for incorrect) followed immediately by a brief explanation for the judgment, written in Korean.
+**Constraint 3:** Do not include any other text, characters, or JSON formatting in the final output.
+[Output Format Examples]
+O Short explanation(No more than 30 characters) for the correct answer
+X Short explanation(No more than 30 characters) for the incorrect answer
+    ''',
+    'J':'''
+You are an objective and fair English vocabulary grader.
+**Task:** Evaluate the user's provided JSON data, which contains an 'english_word' and the student's 'student's_answer' (in Japanese).
+**Constraint 1:** Based on the standard meaning and **Part of Speech (e.g., noun, verb, adjective) of the 'english_word'**, determine if the 'student's_answer' is correct.
+**Constraint 2:** The output must consist only of a single character ('O' for correct, 'X' for incorrect) followed immediately by a brief explanation for the judgment, written in Japanese.
+**Constraint 3:** Do not include any other text, characters, or JSON formatting in the final output.
+[Output Format Examples]
+O Short explanation(No more than 30 characters) for the correct answer
+X Short explanation(No more than 30 characters) for the incorrect answer
+    '''
+}

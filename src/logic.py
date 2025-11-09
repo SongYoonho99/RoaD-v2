@@ -1,4 +1,5 @@
 '''핵심 함수 및 유틸 함수 모음 모듈'''
+import os
 import re
 import socket
 import random
@@ -6,11 +7,14 @@ import tkinter as tk
 import urllib.request
 from io import BytesIO
 from tkinter import font
+from threading import Thread
 
 from gtts import gTTS
 from pygame import mixer
+from google import genai
+from google.genai import types
 
-from constants import Color, Font_E, Text_D, Tip
+from constants import Color, Font_E, Text_D, Text_T, Tip, Gemini_instruction
 
 # ==============================
 # 유틸 함수
@@ -253,6 +257,20 @@ def change_mean(obj, n):
         obj.lbl_list[n].config(text=obj.today_confirm[n][1])
         obj.lbl_list[n].grid(row=n, column=2, sticky='ew')
 
+def insert_lbl_list_test(obj):
+    '''DailyFrame 오른쪽 리스트에 단어 추가하는 함수'''
+    lbl = tk.Label(
+        obj.record_frm, bg=Color.DEEP, font=Font_E.BODY, anchor='w',
+        highlightthickness=5, highlightbackground=Color.DEEP, 
+        text=f'{obj.pointer + 1}. {obj.word_list[obj.pointer]}'
+    )
+    lbl.pack(padx=(4, 0), fill='x')
+    lbl.bind('<MouseWheel>', lambda e: on_mousewheel(e, obj.canvas))
+    # lbl.bind('<Button-1>', lambda e, i=len(obj.word_lbl_list): click_word_lbl(obj, i))
+    obj.word_lbl_list.append(lbl)
+    obj.record_frm.update_idletasks()
+    obj.record_frm.master.yview_moveto(1.0)
+
 # ==============================
 # 프로그램 로직 함수
 # ==============================
@@ -446,26 +464,164 @@ def click_word_lbl(obj, n):
 
     selected_scroll_widget(obj)
 
-def start_test(obj, message_lbl, confirm_word_window):
-    if not all(btn['bg'] == Color.BEIGE for btn in obj.btn_list):
-        show_temp_message(message_lbl, Text_D.WARNING_C[obj.language])
-        return
-
-    confirm_word_window.destroy()
-
+def start_test(
+        obj, username, language, is_add_yourself, streak,
+        lbl = None, window = None, is_exist_today_word = True
+    ):
     from connector import write_today_word, get_test_data
-    if not write_today_word(obj):
-        return
-    response = get_test_data(obj)
+    
+    if is_exist_today_word:
+        if not all(btn['bg'] == Color.BEIGE for btn in obj.btn_list):
+            show_temp_message(lbl, Text_D.WARNING_C[language])
+            return
+
+        window.destroy()
+
+        if not write_today_word(obj):
+            return
+        
+    response = get_test_data(obj, username)
     if response is False:
         return
     
-    test_frm = obj.controller.frames['TestFrame']
-    test_frm.init_data(
-        obj.username, obj.language, obj.is_add_yourself, obj.today_confirm,
-        response.get('first'), response.get('second'), response.get('third'),
-        response.get('fourth'), response.get('fifth'), obj.streak
+    test_word = (
+        [5] + response.get('fifth')
+        + [4] + response.get('fourth')
+        + [3] + response.get('third')
+        + [2] + response.get('second')
+        + [1] + response.get('first')
     )
-    test_frm.create_widgets()
+    if is_exist_today_word:
+        test_word += ['today'] + obj.today_confirm
+
+    test_frm = obj.controller.frames['TestFrame']
+    test_frm.init_data(username, language, is_add_yourself, streak, test_word)
     test_frm.set_init_widgets()
+    test_frm.create_widgets()
+    show_next_word(test_frm)
     obj.controller.show_frame('TestFrame')
+
+def _give_marks(word, user_answer, language):
+    if 'client' not in globals():
+        global client
+        client = genai.Client(api_key=os.getenv('GEMINI_API'))
+
+    contents = f"""
+        "english_word": {word},
+        "student's_answer": {user_answer}
+    """
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        config=types.GenerateContentConfig(
+            system_instruction=Gemini_instruction[language]),
+        contents=contents
+    )
+
+    try:
+        result = response.text[0]
+        comment = response.text[2:]
+
+        if result not in ['O', 'X', 'o', 'x']:
+            result = '-'
+            comment = Text_T.GEMINI_ERROR[language]
+    except:
+        result = '-'
+        comment = Text_T.GEMINI_ERROR[language]
+
+    return result, comment
+
+def click_submit_btn(obj):
+    user_answer = obj.mean_ent.get()
+
+    obj.mean_ent.delete(0, 'end')
+    obj.input_frm.pack_forget()
+    obj.tip_lbl.pack_forget()
+    obj.review_frm.pack(padx=25, pady=(0, 17))
+    obj.tip_lbl.pack(side='left', padx=20, pady=(0, 20))
+
+    # 유저의 입력, 모범답안 표시, 버튼 비활성화
+    obj.user_answer_lbl.config(text=user_answer, fg=Color.FONT_DEFAULT)
+    obj.model_answer_lbl.config(text=obj.model_answer_list[obj.pointer])
+    obj.next_btn.config(state='disabled', bg=Color.BEIGE)
+    obj.update_idletasks()
+
+    # 별도 스레드에서 AI 채점 실행
+    Thread(target=_run_grading_thread, args=(obj, user_answer), daemon=True).start()
+
+def _run_grading_thread(obj, user_answer):
+    result, comment = _give_marks(obj.word_list[obj.pointer], user_answer, obj.language)
+    obj.after(0, lambda: _update_ui_after_grading(obj, user_answer, result, comment))
+
+def _update_ui_after_grading(obj, user_answer, result, comment):
+    if result in ['O', 'o']:
+        obj.result_lbl.config(fg=Color.FONT_GREEN)
+        obj.user_answer_lbl.config(fg=Color.FONT_GREEN)
+    elif result in ['X', 'x']:
+        obj.result_lbl.config(fg=Color.FONT_RED)
+        obj.user_answer_lbl.config(fg=Color.FONT_RED)
+    else:
+        obj.result_lbl.config(fg=Color.FONT_DEFAULT)
+
+    # 채점 결과, 코멘트 표시, 버튼 활성화
+    obj.result_lbl.config(text=result)
+    obj.comment_lbl.config(text=comment)
+    obj.next_btn.config(state='normal', bg=Color.GREEN)
+
+    # 결과, 유저의 입력, 코멘트 리스트에 격납
+    obj.result_list.append(result)
+    obj.user_answer_list.append(user_answer)
+    obj.comment_list.append(comment)
+
+    obj.pointer += 1
+
+def show_next_word(obj):
+    while obj.now_pointer < len(obj.test_word):
+        current = obj.test_word[obj.now_pointer]
+
+        if isinstance(current, int):
+            obj.number_of_iteration = current
+            obj.now_pointer += 1
+            continue
+
+        if isinstance(current, str):
+            if current == 'today':
+                obj.date_temp = Text_T.DATE_TODAY[obj.language]
+            else:
+                obj.date_temp = (
+                    f'{int(current.split("-")[1])}/{int(current.split("-")[2])}'
+                    + Text_T.DATE_TEXT1[obj.language]
+                )
+                if obj.number_of_iteration == 5:
+                    obj.date_temp += Text_T.DATE_TEXT3[obj.language]
+                else:
+                    obj.date_temp += f'{obj.number_of_iteration}' + Text_T.DATE_TEXT2[obj.language]
+            
+            obj.now_pointer += 1
+            continue
+            
+        if isinstance(current, list):
+            # innput_frm 초기화
+            obj.model_answer_list.append(current[1])
+            obj.result_lbl.config(text='')
+            obj.comment_lbl.config(text='')
+            obj.review_frm.pack_forget()
+
+            # 외운날짜정보, 단어, 모범답안 리스트에 격납
+            obj.word_list.append(current[0])
+            obj.date_lbl_list.append(obj.date_temp)    
+            obj.tip_lbl.pack_forget()
+            obj.input_frm.pack(padx=55, pady=(80, 120))
+            obj.tip_lbl.pack(side='left', padx=20, pady=(0, 20))
+
+            # 외운날짜정보, 진행률, 단어, 오른쪽 단어라벨, 팁 표시 
+            obj.date_lbl.config(text=obj.date_temp)
+            obj.progress_lbl.config(text=f'{len(obj.word_list)} / {obj.number_of_word}')
+            obj.word_lbl.config(text=current[0])
+            insert_lbl_list_test(obj)
+            show_test_tip(obj, obj.tip_lbl)
+
+            obj.now_pointer += 1
+
+            break
+        

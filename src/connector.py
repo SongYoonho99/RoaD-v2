@@ -3,7 +3,7 @@ import os
 
 import requests
 
-from logic import show_temp_message
+from logic import show_temp_message, start_test
 from constants import Color
 
 def load_ec2_ip():
@@ -183,19 +183,7 @@ def login(obj, username):
 
         # 오늘의 단어로 추가할 항목이 없고, add yourself가 아닐때 TODO:
         if not today_word and not is_add_yourself:
-            response = get_test_data(obj)
-            if response is False:
-                return
-            
-            test_frm = obj.controller.frames['TestFrame']
-            test_frm.init_data(
-                obj.username, obj.language, obj.is_add_yourself, obj.today_confirm,
-                response.get('first'), response.get('second'), response.get('third'),
-                response.get('fourth'), response.get('fifth'), obj.streak
-            )
-            test_frm.create_widgets()
-            obj.controller.show_frame('TestFrame')
-            
+            start_test(obj, username, language, is_add_yourself, streak, is_exist_today_word = False)
             return
 
         # 로그인 성공
@@ -273,8 +261,8 @@ def _get_test_data(payload):
     URL = f'{base_URL}get_test_data'
     return _request_wrapper('post', URL, payload)
 
-def get_test_data(obj):
-    payload = {'username': obj.username}
+def get_test_data(obj, username):
+    payload = {'username': username}
     response = _get_test_data(payload)
     if response is None:
         obj.controller.show_overlay('Instance connection failure.')
