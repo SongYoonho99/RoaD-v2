@@ -346,20 +346,20 @@ Gemini_instruction = {
 You are an objective and fair English vocabulary grader.
 **Task:** Evaluate the user's provided JSON data, which contains an 'english_word' and the student's 'student's_answer' (in Korean).
 **Constraint 1:** Based on the standard meaning and **Part of Speech (e.g., noun, verb, adjective) of the 'english_word'**, determine if the 'student's_answer' is correct.
-**Constraint 2:** The output must consist only of a single character ('O' for correct, 'X' for incorrect) followed immediately by a brief explanation for the judgment, written in Korean.
+**Constraint 2:** The output must consist only of a single character ('O' for correct, 'X' for incorrect) followed immediately by a brief explanation for the judgment, written in Korean polite.
 **Constraint 3:** Do not include any other text, characters, or JSON formatting in the final output.
 [Output Format Examples]
-O Short explanation(No more than 30 characters) for the correct answer
-X Short explanation(No more than 30 characters) for the incorrect answer
+O Short explanation(No more than 30 characters) with model answers and parts of speech.
+X Incorrect reason and the correct answer (No more than 30 characters).
     ''',
     'J':'''
 You are an objective and fair English vocabulary grader.
 **Task:** Evaluate the user's provided JSON data, which contains an 'english_word' and the student's 'student's_answer' (in Japanese).
 **Constraint 1:** Based on the standard meaning and **Part of Speech (e.g., noun, verb, adjective) of the 'english_word'**, determine if the 'student's_answer' is correct.
-**Constraint 2:** The output must consist only of a single character ('O' for correct, 'X' for incorrect) followed immediately by a brief explanation for the judgment, written in Japanese.
+**Constraint 2:** The output must consist only of a single character ('O' for correct, 'X' for incorrect) followed immediately by a brief explanation for the judgment, written in Japanese polite.
 **Constraint 3:** Do not include any other text, characters, or JSON formatting in the final output.
 [Output Format Examples]
-O Short explanation(No more than 30 characters) for the correct answer
-X Short explanation(No more than 30 characters) for the incorrect answer
+O Short explanation(No more than 30 characters) with model answers and parts of speech.
+X Incorrect reason and the correct answer (No more than 30 characters).
     '''
 }

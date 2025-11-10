@@ -636,13 +636,14 @@ class TestFrame(tk.Frame):
         self.date_temp = None           # 외운날짜문자열을 임시 저장해주기 위한 변수
         self.now_pointer = 0            # 현재 테스트진행중인 단어를 가르키는 포인터
         self.pointer = 0                # 현재 화면에 표시중인 단어를 가르키는 포인터
-        self.date_lbl_list = []         # 외운날짜문자열을 담아두는 리스트
+        self.date_lbl_list = []         # 단어 등록 날짜 담아두는 리스트
         self.word_list = []             # 단어들을 담아두는 리스트
         self.model_answer_list = []     # 모범답안들을 담아두는 리스트
         self.result_list = []           # 채점 결과들을 담아두는 리스트
         self.user_answer_list = []      # 유저의 입력들을 담아두는 리스트
         self.comment_list = []          # Gemini 코멘트들을 담아두는 리스트
         self.word_lbl_list = []         # record 프레임에 기록되는 라벨 리스트
+        self.is_return_current = False
 
     def create_widgets(self):
         body_frm = tk.Frame(self)
@@ -697,7 +698,7 @@ class TestFrame(tk.Frame):
             self.mean_ent.config(width=25)
         else:
             self.mean_ent.config(width=30)
-        self.mean_ent.bind('<Return>', lambda e: logic.click_submit_btn(self))
+        self.mean_ent.bind('<Return>', lambda e: logic.click_submit_btn(self)) # TODO: 리뷰화면에서 엔터쳐도 작동함
         self.mean_ent.grid(row=1, column=0, padx=(0, 18))
         logic.limit_entry_length(self.mean_ent, 30)
 
@@ -711,7 +712,7 @@ class TestFrame(tk.Frame):
         self.review_frm = tk.Frame(left_frm, bg=Color.DARK)
         # self.review_frm.pack(padx=25, pady=(0, 17))
 
-        # 채점 결과
+        # 채점 결과 TODO: O, X가 없을경우에 위젯사이즈가 변경됨.
         tk.Label(
             self.review_frm, bg=Color.DARK, font=self.font.REVIEW, text=Text_T.RESULT[self.language]
         ).grid(row=0, column=0, pady=5, sticky='w')
@@ -754,7 +755,7 @@ class TestFrame(tk.Frame):
         # 다음 버튼
         self.next_btn = tk.Button(
             self.review_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_T.NEXT[self.language],
-            command=lambda: logic.show_next_word(self)
+            command=lambda: logic.show_next_word(self, self.is_return_current)
         )
         self.next_btn.grid(row=4, columnspan=3, pady=(0, 10))
 
@@ -782,7 +783,7 @@ class TestFrame(tk.Frame):
         self.canvas.create_window((0, 0), window=self.record_frm, anchor='nw', width=250)
         self.record_frm.bind('<Configure>', lambda e: logic.on_configure(e, self.canvas))
 
-        print(self.test_word)
+        # print(self.test_word)
 
     def set_init_widgets(self):
         pass
