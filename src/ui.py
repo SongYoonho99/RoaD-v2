@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import logic
 import connector
-from constants import Path, Color, Font_E, Font_K, Font_J, Text_D, Text_T
+from constants import Path, Color, Font_E, Font_K, Font_J, Text_D, Text_T, Text_R
 
 class LoginFrame(tk.Frame):
     def __init__(self, parent, controller):
@@ -439,9 +439,10 @@ class DailyFrame(tk.Frame):
         manual_window.resizable(False, False)
         logic.place_window_center(manual_window, 900, 720)
 
-        manual_lbl = tk.Label(manual_window, image=manual)
+        # 메인이미지
+        manual_lbl = tk.Label(manual_window, bg=Color.RED, image=manual)
         manual_lbl.image = manual
-        manual_lbl.place(x=(900 - manual.width()) // 2 - 5)
+        manual_lbl.place(x=(900 - manual.width()) // 2 - 3)
 
         # 2 페이지
         square_progress = tk.PhotoImage(file=Path.SQUARE_PROGRESS)
@@ -499,9 +500,10 @@ class DailyFrame(tk.Frame):
         manual_window.resizable(False, False)
         logic.place_window_center(manual_window, 900, 720)
 
-        manual_lbl = tk.Label(manual_window, image=manual)
+        # 메인이미지
+        manual_lbl = tk.Label(manual_window, bg=Color.RED, image=manual)
         manual_lbl.image = manual
-        manual_lbl.place(x=(900 - manual.width()) // 2 - 5)
+        manual_lbl.place(x=(900 - manual.width()) // 2 - 3)
 
         # 2 페이지
         square_progress = tk.PhotoImage(file=Path.SQUARE_PROGRESS)
@@ -628,9 +630,9 @@ class TestFrame(tk.Frame):
         self.username = username
         self.language = language
         self.font = Font_K if self.language == 'K' else Font_J
-        self.is_add_yourself = is_add_yourself
+        self.is_add_yourself = is_add_yourself  # TODO: 필요없을수도?
         self.streak = streak
-        self.test_word = test_word  # 테스트단어들과 날짜가 동시에 적혀있는 리스트
+        self.test_word = test_word      # 테스트단어들과 날짜가 동시에 적혀있는 리스트
         self.number_of_word = sum(1 for w in self.test_word if isinstance(w, list)) # 단어의 총 개수
         self.number_of_iteration = None # 반복횟수를 임시 저장해두기 위한 변수
         self.date_temp = None           # 외운날짜문자열을 임시 저장해주기 위한 변수
@@ -643,7 +645,8 @@ class TestFrame(tk.Frame):
         self.user_answer_list = []      # 유저의 입력들을 담아두는 리스트
         self.comment_list = []          # Gemini 코멘트들을 담아두는 리스트
         self.word_lbl_list = []         # record 프레임에 기록되는 라벨 리스트
-        self.is_return_current = False
+        self.is_return_current = False  # 현재단어로 돌아갈때 상황별 처리를 위한 불 변수
+        self.is_scoring = False         # 채점중일때 단어간 화면 전환 못하도록 하기 위한 변수
 
     def create_widgets(self):
         body_frm = tk.Frame(self)
@@ -651,7 +654,7 @@ class TestFrame(tk.Frame):
         body_frm.bind('<Button-1>', lambda e: body_frm.focus_set())
 
         # 제목 라벨
-        tk.Label(body_frm, font=self.font.BODY_BIG, anchor='w', text=Text_T.TITLE[self.language]).pack()
+        tk.Label(body_frm, font=self.font.BODY_BIG, text=Text_T.TITLE[self.language]).pack()
 
         # 중앙 프레임
         center_frm = tk.Frame(body_frm, bg=Color.DARK)
@@ -698,7 +701,11 @@ class TestFrame(tk.Frame):
             self.mean_ent.config(width=25)
         else:
             self.mean_ent.config(width=30)
-        self.mean_ent.bind('<Return>', lambda e: logic.click_submit_btn(self)) # TODO: 리뷰화면에서 엔터쳐도 작동함
+        self.mean_ent.bind(
+            '<Return>',
+            lambda e: logic.click_submit_btn(self)
+            if self.input_frm.winfo_ismapped() else None
+        )
         self.mean_ent.grid(row=1, column=0, padx=(0, 18))
         logic.limit_entry_length(self.mean_ent, 30)
 
@@ -710,9 +717,8 @@ class TestFrame(tk.Frame):
 
         # 채점결과 프레임
         self.review_frm = tk.Frame(left_frm, bg=Color.DARK)
-        # self.review_frm.pack(padx=25, pady=(0, 17))
 
-        # 채점 결과 TODO: O, X가 없을경우에 위젯사이즈가 변경됨.
+        # 채점 결과 TODO: O, X크기가 달라서 위젯사이즈가 계속 변경됨.
         tk.Label(
             self.review_frm, bg=Color.DARK, font=self.font.REVIEW, text=Text_T.RESULT[self.language]
         ).grid(row=0, column=0, pady=5, sticky='w')
@@ -757,6 +763,10 @@ class TestFrame(tk.Frame):
             self.review_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_T.NEXT[self.language],
             command=lambda: logic.show_next_word(self, self.is_return_current)
         )
+        self.winfo_toplevel().bind(
+            '<Return>',
+            lambda e: self.next_btn.invoke() if self.review_frm.winfo_ismapped() else None
+        )
         self.next_btn.grid(row=4, columnspan=3, pady=(0, 10))
 
         # 팁 라벨
@@ -783,21 +793,119 @@ class TestFrame(tk.Frame):
         self.canvas.create_window((0, 0), window=self.record_frm, anchor='nw', width=250)
         self.record_frm.bind('<Configure>', lambda e: logic.on_configure(e, self.canvas))
 
-        # print(self.test_word)
-
-    def set_init_widgets(self):
-        pass
- 
-
-
-
-
-
-
 class ResultFrame(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
 
+    def init_data(
+            self, username, language, number_of_word,
+            date_list, word_list, user_answer_list, model_answer_list, comment_list
+        ):
+        self.username = username
+        self.language = language
+        self.number_of_word = number_of_word
+        self.font = Font_K if self.language == 'K' else Font_J
+        self.date_list = date_list
+        self.word_list = word_list
+        self.user_answer_list = user_answer_list
+        self.model_answer_list = model_answer_list
+        self.comment_list = comment_list
+        self.word_lbl_list = []
+
     def create_widgets(self):
-        pass
+        body_frm = tk.Frame(self)
+        body_frm.place(relx=0.5, rely=0.5, relwidth=0.9, relheight=0.9, anchor='center')
+        body_frm.bind('<Button-1>', lambda e: body_frm.focus_set())
+
+        # 테스트 결과 리뷰 프레임
+        self.review_frm = tk.Frame(body_frm)
+        self.review_frm.place(relx=0.5, rely=0.5, anchor='center')
+
+        # 점수 라벨
+        score_lbl = tk.Label(self.review_frm, font=self.font.BODY_BIG, anchor='w')
+        score = int(round((self.number_of_word - len(self.word_list)) / self.number_of_word, 2) * 100)
+        score_text = f'{score}{Text_R.SCORE[self.language]}'
+        score_lbl.pack()
+
+        # 리뷰 라벨
+        if score == 100:
+            review_lbl = tk.Label(self.review_frm, font=self.font.BODY_BIG, anchor='w')
+            review_text = (
+                f'{Text_R.REVIEW_PERFECT1[self.language]} '
+                f'{self.number_of_word}'
+                f'{Text_R.REVIEW_PERFECT2[self.language]}'
+            )
+            review_lbl.pack(pady=40)
+            logic.typing_effect(
+                score_lbl, score_text,
+                callback=lambda: logic.typing_effect(review_lbl, review_text)
+            )
+        else:
+            review_lbl = tk.Label(self.review_frm, font=self.font.BODY_BIG, anchor='w')
+            review_text = (
+                f'{self.number_of_word}{Text_R.REVIEW1[self.language]}'
+                f'{len(self.word_list)}{Text_R.REVIEW2[self.language]}'
+            )
+            review_lbl.pack(pady=40)
+            logic.typing_effect(
+                score_lbl, score_text,
+                callback=lambda: logic.typing_effect(review_lbl, review_text)
+            )
+
+        # 버튼
+        if not self.word_list:
+            tk.Button(
+                self.review_frm, bg=Color.GREEN, font=self.font.CONFIRM_BUTTON,
+                text=Text_R.QUIT_PROGRAM[self.language],
+                command=self.winfo_toplevel().destroy
+            ).pack()
+        else:
+            tk.Button(
+                self.review_frm, bg=Color.GREEN, font=self.font.CONFIRM_BUTTON,
+                text=Text_R.WRONG_WORD[self.language],
+                command= lambda: logic.show_wrong_word(self, title_lbl)
+            ).pack()
+
+        # 제목 라벨
+        title_lbl = tk.Label(body_frm, font=self.font.BODY_BIG, text=Text_R.TITLE[self.language])
+
+        # 틀린 단어 체크 프레임
+        self.check_frm = tk.Frame(body_frm, bg=Color.DARK)
+
+        # 왼쪽 프레임
+        left_frm = tk.Frame(self.check_frm, bg=Color.DARK)
+        left_frm.pack(side='left', fill='both', expand=True)
+        left_frm.bind('<Button-1>', lambda e: left_frm.focus_set())
+
+        # 오른쪽 프레임
+        right_frm = tk.Frame(self.check_frm)
+        right_frm.pack(side='left', fill='y')
+
+        # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
+        self.canvas = tk.Canvas(
+            right_frm, bg=Color.DEEP, highlightthickness=0, width=250
+        )
+        self.canvas.pack(side='left', fill='both', expand=True)
+
+        # 수직 스크롤바 생성 및 Canvas와 연결
+        scrollbar = tk.Scrollbar(right_frm, command=self.canvas.yview)
+        scrollbar.pack(side='right', fill='y')
+        self.canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Canvas 안에 실제 내용(Frame) 생성
+        self.record_frm = tk.Frame(self.canvas, bg=Color.DARK)
+        self.canvas.create_window((0, 0), window=self.record_frm, anchor='nw', width=250)
+        self.record_frm.bind('<Configure>', lambda e: logic.on_configure(e, self.canvas))
+
+        for i, w in enumerate(self.word_list):
+            lbl = tk.Label(
+                self.record_frm, bg=Color.DEEP, font=Font_E.BODY, anchor='w',
+                highlightthickness=5, highlightbackground=Color.DEEP, text=f'{i + 1}. {w}'
+            )
+            lbl.pack(padx=(4, 0), fill='x')
+            lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, self.canvas))
+            # lbl.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): click_word_lbl(obj, i))
+            self.word_lbl_list.append(lbl)
+            self.record_frm.update_idletasks()
+            self.record_frm.master.yview_moveto(1.0)

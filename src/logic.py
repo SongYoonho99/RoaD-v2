@@ -72,24 +72,24 @@ def next_manual_page(
 ):
     if obj.page == 0:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
-        square_progress_lbl.place(x=250, y=67)
+        square_progress_lbl.place(x=252, y=67)
     elif obj.page == 1:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
         square_progress_lbl.place_forget()
-        square_mean_lbl.place(x=48, y=395)
+        square_mean_lbl.place(x=50, y=395)
         if obj.language == 'K':
-            square_dict_lbl.place(x=197, y=573)
+            square_dict_lbl.place(x=199, y=573)
         else:
-            square_dict_lbl.place(x=81, y=572)
+            square_dict_lbl.place(x=83, y=572)
     elif obj.page == 2:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
         square_mean_lbl.place_forget()
         square_dict_lbl.place_forget()
-        square_know_lbl.place(x=56, y=366)
+        square_know_lbl.place(x=58, y=366)
     elif obj.page == 3:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
         square_know_lbl.place_forget()
-        square_right_lbl.place(x=643)
+        square_right_lbl.place(x=645)
         next_btn.config(text=Text_D.START[obj.language])
     else:
         manual_window.destroy()
@@ -103,17 +103,17 @@ def next_manual_page_add(
 ):
     if obj.page == 0:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_{obj.page + 2}')[obj.language])
-        square_progress_lbl.place(x=250, y=67)
+        square_progress_lbl.place(x=252, y=67)
     elif obj.page == 1:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_ADD_{obj.page + 2}')[obj.language])
         square_progress_lbl.place_forget()
-        square_word_lbl.place(x=117, y=205)
-        square_mean_lbl.place(x=50, y=369)
+        square_word_lbl.place(x=119, y=205)
+        square_mean_lbl.place(x=52, y=369)
     elif obj.page == 2:
         message_lbl.config(text=getattr(Text_D, f'MANUAL_ADD_{obj.page + 2}')[obj.language])
         square_word_lbl.place_forget()
         square_mean_lbl.place_forget()
-        square_right_add_lbl.place(x=641)
+        square_right_add_lbl.place(x=643)
         next_btn.config(text=Text_D.START[obj.language])
     else:
         manual_window.destroy()
@@ -121,7 +121,7 @@ def next_manual_page_add(
 
     obj.page += 1
 
-def typing_effect(label, text, delay=75):
+def typing_effect(label, text, delay=75, callback=None):
     '''Label의 글자를 한 글자씩 출력'''
     fnt = font.Font(font=label['font'])
     label.config(width=max(1, fnt.measure(text) // fnt.measure('e'))) # e 가 한글, 일본어 양쪽대응
@@ -130,6 +130,8 @@ def typing_effect(label, text, delay=75):
         if idx <= len(text):
             label.config(text=text[:idx])
             label.after(delay, inner, idx+1)
+        elif callback:
+            callback()
     inner()
 
 def copy_word(obj, event):
@@ -267,7 +269,11 @@ def insert_lbl_list_test(obj):
     )
     lbl.pack(padx=(4, 0), fill='x')
     lbl.bind('<MouseWheel>', lambda e: on_mousewheel(e, obj.canvas))
-    lbl.bind('<Button-1>', lambda e, i=len(obj.word_lbl_list): click_word_lbl_test(obj, i))
+    lbl.bind(
+        '<Button-1>',
+        lambda e, i=len(obj.word_lbl_list):
+            click_word_lbl_test(obj, i) if not obj.is_scoring else None
+    )
     obj.word_lbl_list.append(lbl)
     obj.record_frm.update_idletasks()
     obj.record_frm.master.yview_moveto(1.0)
@@ -497,14 +503,13 @@ def start_test(
 
     test_frm = obj.controller.frames['TestFrame']
     test_frm.init_data(username, language, is_add_yourself, streak, test_word)
-    test_frm.set_init_widgets()
     test_frm.create_widgets()
     show_next_word(test_frm)
     obj.controller.show_frame('TestFrame')
 
 def click_submit_btn(obj):
     word = obj.word_lbl.cget('text')
-    user_answer = obj.mean_ent.get()
+    user_answer = obj.mean_ent.get()   
 
     # input_frm 에서 review_frm 으로 변경
     obj.input_frm.pack_forget()
@@ -514,11 +519,12 @@ def click_submit_btn(obj):
 
     # input_frm, review_frm 갱신
     obj.mean_ent.delete(0, 'end')
-    obj.result_lbl.config(text='')
+    obj.result_lbl.config(fg=Color.FONT_DARK, text='O')
     obj.user_answer_lbl.config(text=user_answer, fg=Color.FONT_DEFAULT)
     obj.model_answer_lbl.config(text=obj.model_answer_list[obj.pointer]) 
     obj.comment_lbl.config(text='')
     obj.next_btn.config(state='disabled', bg=Color.BEIGE)
+    obj.is_scoring = True
     obj.update_idletasks()
 
     Thread(target=_run_grading_thread, args=(obj, word, user_answer), daemon=True).start()
@@ -588,10 +594,13 @@ def _update_ui_after_grading(obj, user_answer, result, comment):
     obj.user_answer_list.append(user_answer)
     obj.comment_list.append(comment)
 
-    # 채점 결과, 코멘트 표시, 버튼 활성화
+    # 채점 결과, 코멘트 표시, 버튼, 오른쪽 라벨 다시 활성화
     obj.result_lbl.config(text=result)
     obj.comment_lbl.config(text=comment)
     obj.next_btn.config(state='normal', bg=Color.GREEN)
+    obj.is_scoring = False
+    if len(obj.result_list) == obj.number_of_word:
+        obj.next_btn.config(text=Text_T.SHOW_RESULT[obj.language])
 
     obj.pointer += 1
 
@@ -642,13 +651,13 @@ def show_next_word(obj, is_return_current = False):
             # test_word의 마지막인덱스를 가르키는 포인터 1 증가
             obj.now_pointer += 1
 
-            break
+            return
 
-    # TODO: 테스트 종료
+    finish_test(obj)
 
 def _decide_date(obj, current):
     if current == 'today':
-        obj.date_temp = Text_T.DATE_TODAY[obj.language]
+        date_confirm = Text_T.DATE_TODAY[obj.language]
     else:
         if obj.number_of_iteration == 5:
             date_confirm = (datetime.strptime(current, '%Y-%m-%d') - timedelta(days=28)).strftime('%Y-%m-%d')
@@ -697,6 +706,15 @@ def click_word_lbl_test(obj, n):
     obj.word_lbl.config(text=obj.word_list[obj.pointer])
     obj.result_lbl.config(text=obj.result_list[obj.pointer])
     obj.user_answer_lbl.config(text=obj.user_answer_list[obj.pointer])
+    if obj.result_list[obj.pointer] in ['O', 'o']:
+        obj.result_lbl.config(fg=Color.FONT_GREEN)
+        obj.user_answer_lbl.config(fg=Color.FONT_GREEN)
+    elif obj.result_list[obj.pointer] in ['X', 'x']:
+        obj.result_lbl.config(fg=Color.FONT_RED)
+        obj.user_answer_lbl.config(fg=Color.FONT_RED)
+    else:
+        obj.result_lbl.config(fg=Color.FONT_DEFAULT)
+        obj.user_answer_lbl.config(fg=Color.FONT_DEFAULT)
     obj.model_answer_lbl.config(text=obj.model_answer_list[obj.pointer])
     obj.comment_lbl.config(text=obj.comment_list[obj.pointer])
     selected_scroll_widget(obj)
@@ -715,3 +733,33 @@ def _return_current(obj):
     obj.date_lbl.config(text=obj.date_lbl_list[obj.pointer])
     obj.word_lbl.config(text=obj.word_list[obj.pointer])
     selected_scroll_widget(obj)
+
+def finish_test(obj):
+    # TODO: DB에 기록
+
+    wrong_date_list = []
+    wrong_word_list = []
+    wrong_user_answer_list = []
+    wrong_model_answer_list = []
+    wrong_comment_list = []
+    
+    for i, result in enumerate(obj.result_list):
+        if result in ['X', 'x']:
+            wrong_date_list.append(obj.date_lbl_list[i])
+            wrong_word_list.append(obj.word_list[i])
+            wrong_user_answer_list.append(obj.user_answer_list[i])
+            wrong_model_answer_list.append(obj.model_answer_list[i])
+            wrong_comment_list.append(obj.comment_list[i])
+    
+    result_frm = obj.controller.frames['ResultFrame']
+    result_frm.init_data(
+        obj.username, obj.language, obj.number_of_word, wrong_date_list, wrong_word_list,
+        wrong_user_answer_list, wrong_model_answer_list, wrong_comment_list
+    )
+    result_frm.create_widgets()
+    obj.controller.show_frame('ResultFrame')
+
+def show_wrong_word(obj, title_lbl):
+    title_lbl.pack()
+    obj.review_frm.place_forget()
+    obj.check_frm.pack(expand=True)
