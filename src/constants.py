@@ -43,6 +43,7 @@ class Color:
     FONT_GREEN = '#5d9948'
     FONT_RED = '#F27E7E'
     FONT_BLUE = '#0065b2'
+    FONT_GREY = '#3C3A38'
 
 class Font_E:
     '''영어 글꼴 상수 클래스'''
@@ -312,6 +313,22 @@ class Text_R:
     TITLE = {
         'K': '틀린 단어 복습',
         'J': '間違った単語復習'
+    }
+    WORD = {
+        'K': '단어',
+        'J': '単語'
+    }
+    MODEL_ANSWER = {
+        'K': '모범답안',
+        'J': '模範解答'
+    }
+    INPUT = {
+        'K': '입력',
+        'J': '入力'
+    }
+    NEXT = {
+        'K': '다음',
+        'J': '次へ'
     }
 
 class Tip:

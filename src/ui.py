@@ -391,9 +391,7 @@ class DailyFrame(tk.Frame):
         right_frm.pack(side='left', fill='y')
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
-        self.canvas = tk.Canvas(
-            right_frm, bg=Color.DEEP, highlightthickness=0, width=250
-        )
+        self.canvas = tk.Canvas(right_frm, bg=Color.DEEP, highlightthickness=0, width=250)
         self.canvas.pack(side='left', fill='both', expand=True)
 
         # 수직 스크롤바 생성 및 Canvas와 연결
@@ -778,9 +776,7 @@ class TestFrame(tk.Frame):
         right_frm.pack(side='left', fill='y')
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
-        self.canvas = tk.Canvas(
-            right_frm, bg=Color.DEEP, highlightthickness=0, width=250
-        )
+        self.canvas = tk.Canvas(right_frm, bg=Color.DEEP, highlightthickness=0, width=250)
         self.canvas.pack(side='left', fill='both', expand=True)
 
         # 수직 스크롤바 생성 및 Canvas와 연결
@@ -806,6 +802,7 @@ class ResultFrame(tk.Frame):
         self.language = language
         self.number_of_word = number_of_word
         self.font = Font_K if self.language == 'K' else Font_J
+        self.pointer = 0
         self.date_list = date_list
         self.word_list = word_list
         self.user_answer_list = user_answer_list
@@ -815,7 +812,7 @@ class ResultFrame(tk.Frame):
 
     def create_widgets(self):
         body_frm = tk.Frame(self)
-        body_frm.place(relx=0.5, rely=0.5, relwidth=0.9, relheight=0.9, anchor='center')
+        body_frm.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
         body_frm.bind('<Button-1>', lambda e: body_frm.focus_set())
 
         # 테스트 결과 리뷰 프레임
@@ -825,47 +822,58 @@ class ResultFrame(tk.Frame):
         # 점수 라벨
         score_lbl = tk.Label(self.review_frm, font=self.font.BODY_BIG, anchor='w')
         score = int(round((self.number_of_word - len(self.word_list)) / self.number_of_word, 2) * 100)
-        score_text = f'{score}{Text_R.SCORE[self.language]}'
         score_lbl.pack()
 
         # 리뷰 라벨
         if score == 100:
-            review_lbl = tk.Label(self.review_frm, font=self.font.BODY_BIG, anchor='w')
-            review_text = (
-                f'{Text_R.REVIEW_PERFECT1[self.language]} '
-                f'{self.number_of_word}'
-                f'{Text_R.REVIEW_PERFECT2[self.language]}'
+            self.review_lbl = tk.Label(
+                self.review_frm,
+                text=(
+                        f'{Text_R.REVIEW_PERFECT1[self.language]} '
+                        f'{self.number_of_word}'
+                        f'{Text_R.REVIEW_PERFECT2[self.language]}'
+                ),
+                font=self.font.BODY_BIG,
+                fg=Color.FONT_GREY 
             )
-            review_lbl.pack(pady=40)
-            logic.typing_effect(
-                score_lbl, score_text,
-                callback=lambda: logic.typing_effect(review_lbl, review_text)
-            )
+            self.review_lbl.pack(pady=40)
         else:
-            review_lbl = tk.Label(self.review_frm, font=self.font.BODY_BIG, anchor='w')
-            review_text = (
-                f'{self.number_of_word}{Text_R.REVIEW1[self.language]}'
-                f'{len(self.word_list)}{Text_R.REVIEW2[self.language]}'
+            self.review_lbl = tk.Label(
+                self.review_frm,
+                text=(
+                    f'{self.number_of_word}{Text_R.REVIEW1[self.language]}'
+                    f'{len(self.word_list)}{Text_R.REVIEW2[self.language]}'
+                ),
+                font=self.font.BODY_BIG,
+                fg=Color.FONT_GREY
             )
-            review_lbl.pack(pady=40)
-            logic.typing_effect(
-                score_lbl, score_text,
-                callback=lambda: logic.typing_effect(review_lbl, review_text)
-            )
+            self.review_lbl.pack(pady=40)
 
         # 버튼
-        if not self.word_list:
-            tk.Button(
-                self.review_frm, bg=Color.GREEN, font=self.font.CONFIRM_BUTTON,
+        if score == 100:
+            self.review_btn = tk.Button(
+                self.review_frm,
                 text=Text_R.QUIT_PROGRAM[self.language],
+                bg=Color.GREY,
+                font=self.font.CONFIRM_BUTTON,
+                fg=Color.FONT_GREY,
+                relief='flat',
                 command=self.winfo_toplevel().destroy
-            ).pack()
+            )
+            self.review_btn.pack()
         else:
-            tk.Button(
-                self.review_frm, bg=Color.GREEN, font=self.font.CONFIRM_BUTTON,
+            self.review_btn = tk.Button(
+                self.review_frm,
                 text=Text_R.WRONG_WORD[self.language],
+                bg=Color.GREY,
+                font=self.font.CONFIRM_BUTTON,
+                fg=Color.FONT_GREY,
+                relief='flat',
                 command= lambda: logic.show_wrong_word(self, title_lbl)
-            ).pack()
+            )
+            self.review_btn.pack()
+
+        logic.animate_score(self, score_lbl, score)
 
         # 제목 라벨
         title_lbl = tk.Label(body_frm, font=self.font.BODY_BIG, text=Text_R.TITLE[self.language])
@@ -873,39 +881,162 @@ class ResultFrame(tk.Frame):
         # 틀린 단어 체크 프레임
         self.check_frm = tk.Frame(body_frm, bg=Color.DARK)
 
-        # 왼쪽 프레임
-        left_frm = tk.Frame(self.check_frm, bg=Color.DARK)
-        left_frm.pack(side='left', fill='both', expand=True)
-        left_frm.bind('<Button-1>', lambda e: left_frm.focus_set())
+        # 위쪽 프레임
+        top_frm = tk.Frame(self.check_frm, bg=Color.DARK)
+        top_frm.pack(fill='both', expand=True)
+        top_frm.bind('<Button-1>', lambda e: top_frm.focus_set())
+        tk.Label(top_frm, bg=Color.DARK).pack(padx=447, pady=(0, 30))
 
-        # 오른쪽 프레임
-        right_frm = tk.Frame(self.check_frm)
-        right_frm.pack(side='left', fill='y')
+        # 단어 정보 라벨
+        self.date_lbl = tk.Label(top_frm, bg=Color.DARK, font=self.font.TIP)
+        self.date_lbl.pack()
+
+        # 영단어와 스피커를 담는 프레임
+        word_frm = tk.Frame(top_frm, bg=Color.DARK)
+        word_frm.pack(pady=(0, 55))
+
+        # 영단어 라벨
+        self.word_lbl = tk.Label(word_frm, bg=Color.DARK, font=Font_E.BODY_WORD)
+        self.word_lbl.pack(side='left')
+
+        # 스피커이미지 라벨
+        speaker_lbl = tk.Label(word_frm, bg=Color.DARK, image=self.controller.speaker_icon)
+        speaker_lbl.pack(side='left', padx=10,  fill='y', anchor='center')
+        speaker_lbl.bind(
+            '<Button-1>', lambda e: logic.play_pronunciation(self, self.word_lbl.cget('text'))
+        )
+
+        # 채점결과 프레임
+        result_frm = tk.Frame(top_frm, bg=Color.DARK)
+        result_frm.pack(padx=40, pady=(0, 17), fill='x', expand=True)
+
+        # 유저의 입력
+        tk.Label(
+            result_frm, bg=Color.DARK, font=self.font.REVIEW, text=Text_T.USER_ANSWER[self.language]
+        ).grid(row=0, column=0, pady=5, sticky='w')
+        tk.Label(
+            result_frm, bg=Color.DARK, font=self.font.REVIEW, text=':'
+        ).grid(row=0, column=1, padx=5, pady=5)
+        self.user_answer_lbl = tk.Label(result_frm, bg=Color.DARK, font=self.font.REVIEW, fg=Color.FONT_RED)
+        self.user_answer_lbl.grid(row=0, column=2, pady=5, sticky='w')
+
+        # 모범답안
+        tk.Label(
+            result_frm, bg=Color.DARK, font=self.font.REVIEW, text=Text_T.MODEL_ANSWER[self.language]
+        ).grid(row=1, column=0, pady=5, sticky='w')
+        tk.Label(
+            result_frm, bg=Color.DARK, font=self.font.REVIEW, text=':'
+        ).grid(row=1, column=1, padx=5, pady=5)
+        self.model_answer_lbl = tk.Label(result_frm, bg=Color.DARK, font=self.font.REVIEW, fg=Color.FONT_GREEN)
+        self.model_answer_lbl.grid(row=1, column=2, pady=5, sticky='w')
+
+        # 코멘트
+        tk.Label(
+            result_frm, bg=Color.DARK, font=self.font.REVIEW, text=Text_T.COMMENT[self.language]
+        ).grid(row=2, column=0, pady=(5, 18), sticky='w')
+        tk.Label(
+            result_frm, bg=Color.DARK, font=self.font.REVIEW, text=':'
+        ).grid(row=2, column=1, padx=5, pady=(5, 18))
+        self.comment_lbl = tk.Label(result_frm, bg=Color.DARK, font=self.font.REVIEW)
+        self.comment_lbl.grid(row=2, column=2, pady=(5, 18), sticky='w')
+
+        # 버튼 프레임
+        button_frm = tk.Frame(top_frm, bg=Color.DARK)
+        button_frm.pack(pady=(0, 25))
+
+        tk.Button(
+            button_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_R.NEXT[self.language],
+            command= lambda: logic.show_next_word_result(self)
+        ).pack(side='left')
+        retry_btn = tk.Button(
+            button_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_T.NEXT[self.language]
+        )
+
+        # 아래쪽 프레임
+        bottom_frm = tk.Frame(self.check_frm)
+        bottom_frm.pack(fill='x')
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
-        self.canvas = tk.Canvas(
-            right_frm, bg=Color.DEEP, highlightthickness=0, width=250
-        )
+        self.canvas = tk.Canvas(bottom_frm, bg=Color.DEEP, highlightthickness=0, height=198)
         self.canvas.pack(side='left', fill='both', expand=True)
+        self.canvas.bind("<Configure>", lambda e: logic._resize_record_frame(self, e))
 
         # 수직 스크롤바 생성 및 Canvas와 연결
-        scrollbar = tk.Scrollbar(right_frm, command=self.canvas.yview)
+        scrollbar = tk.Scrollbar(bottom_frm, command=self.canvas.yview)
         scrollbar.pack(side='right', fill='y')
         self.canvas.configure(yscrollcommand=scrollbar.set)
 
         # Canvas 안에 실제 내용(Frame) 생성
-        self.record_frm = tk.Frame(self.canvas, bg=Color.DARK)
-        self.canvas.create_window((0, 0), window=self.record_frm, anchor='nw', width=250)
+        self.record_frm = tk.Frame(self.canvas, bg=Color.DEEP)
+        self.window_id = self.canvas.create_window((0, 0), window=self.record_frm, anchor='nw')
         self.record_frm.bind('<Configure>', lambda e: logic.on_configure(e, self.canvas))
+        self.record_frm.bind_all('<MouseWheel>', lambda e: logic.on_mousewheel(e, self.canvas))
+        self.record_frm.grid_columnconfigure(0, weight=1)
+        self.record_frm.grid_columnconfigure(1, weight=3)
+        self.record_frm.grid_columnconfigure(2, weight=4)
+
+        tk.Label(
+            self.record_frm,
+            bg=Color.DEEP,
+            font=self.font.BODY,
+            text=Text_R.WORD[self.language],
+            highlightbackground=Color.DEEP,
+            highlightthickness=5,
+            anchor='w'
+        ).grid(row=0, column=0, sticky='ew')
+        tk.Label(
+            self.record_frm,
+            bg=Color.DEEP,
+            font=self.font.BODY,
+            text=Text_R.MODEL_ANSWER[self.language],
+            highlightbackground=Color.DEEP,
+            highlightthickness=5,
+            anchor='w'
+        ).grid(row=0, column=1, sticky='ew')
+        tk.Label(
+            self.record_frm,
+            bg=Color.DEEP,
+            font=self.font.BODY,
+            text=Text_R.INPUT[self.language],
+            highlightbackground=Color.DEEP,
+            highlightthickness=5,
+            anchor='w'
+        ).grid(row=0, column=2, sticky='ew')
 
         for i, w in enumerate(self.word_list):
-            lbl = tk.Label(
-                self.record_frm, bg=Color.DEEP, font=Font_E.BODY, anchor='w',
-                highlightthickness=5, highlightbackground=Color.DEEP, text=f'{i + 1}. {w}'
+            lbl1 = tk.Label(
+                self.record_frm,
+                bg=Color.DEEP,
+                font=Font_E.BODY,
+                text=w,
+                highlightbackground=Color.DEEP,
+                highlightthickness=5,
+                anchor='w'                
             )
-            lbl.pack(padx=(4, 0), fill='x')
-            lbl.bind('<MouseWheel>', lambda e: logic.on_mousewheel(e, self.canvas))
+            lbl1.grid(row=i+1, column=0, sticky='ew')
+            lbl2 = tk.Label(
+                self.record_frm,
+                bg=Color.DEEP,
+                font=self.font.BODY,
+                fg=Color.FONT_GREEN,
+                text=self.model_answer_list[i],
+                highlightbackground=Color.DEEP,
+                highlightthickness=5,
+                anchor='w',
+            )
+            lbl2.grid(row=i+1, column=1, sticky='ew')
+            lbl3 = tk.Label(
+                self.record_frm,
+                text=self.user_answer_list[i],
+                bg=Color.DEEP,
+                font=self.font.BODY,
+                fg=Color.FONT_RED,
+                highlightbackground=Color.DEEP,
+                highlightthickness=5,
+                anchor='w'
+            )
+            lbl3.grid(row=i+1, column=2, sticky='ew')
+
+
             # lbl.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): click_word_lbl(obj, i))
-            self.word_lbl_list.append(lbl)
-            self.record_frm.update_idletasks()
-            self.record_frm.master.yview_moveto(1.0)
+            # self.word_lbl_list.append(lbl)

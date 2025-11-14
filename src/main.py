@@ -79,3 +79,5 @@ if __name__ == '__main__':
     load_ec2_ip()
     app = App()
     app.run()
+
+    # TODO: 위젯 스페이스바 바인드 남아있으면 엉뚱한데서 스페이스바 쳐도 실행됨

@@ -1,6 +1,6 @@
 '''핵심 함수 및 유틸 함수 모음 모듈'''
-import os
 import re
+import math
 import socket
 import random
 import tkinter as tk
@@ -15,7 +15,7 @@ from pygame import mixer
 from google import genai
 from google.genai import types
 
-from constants import Color, Font_E, Text_D, Text_T, Tip, Gemini_instruction
+from constants import Color, Font_E, Text_D, Text_T, Text_R, Tip, Gemini_instruction
 
 # ==============================
 # 유틸 함수
@@ -170,6 +170,11 @@ def on_configure(event, canvas):
             scrollregion=(0, 0, canvas.winfo_width(), max(bbox[3], canvas.winfo_height()))
         )
 
+def _resize_record_frame(obj, event):
+    canvas_width = event.width
+    obj.canvas.itemconfig(obj.window_id, width=canvas_width)
+    obj.record_frm.config(width=canvas_width)
+
 def show_daily_tip(obj, tip_lbl):
     '''TIP_D 또는 TIP_B로 시작하는 항목 중 하나를 랜덤 출력'''
     tip_attrs = [
@@ -277,6 +282,30 @@ def insert_lbl_list_test(obj):
     obj.word_lbl_list.append(lbl)
     obj.record_frm.update_idletasks()
     obj.record_frm.master.yview_moveto(1.0)
+
+def animate_score(obj, label, score):
+    current = 0
+
+    def update():
+        nonlocal current
+        if current >= score:
+            label.config(text=f'{score}{Text_R.SCORE[obj.language]}')
+            obj.review_lbl.config(fg=Color.FONT_DEFAULT)
+            obj.review_btn.config(bg=Color.GREEN, fg=Color.FONT_DEFAULT, relief='raised')
+            return
+
+        current += 1
+        label.config(text=f'{current}{Text_R.SCORE[obj.language]}')
+
+        min_delay = 20
+        max_delay = 500
+        exponent = 10
+        ratio = current / score
+        delay = int(min_delay + (max_delay - min_delay) * (ratio ** exponent))
+
+        label.after(delay, update)
+
+    update()
 
 # ==============================
 # 프로그램 로직 함수
@@ -534,47 +563,49 @@ def _run_grading_thread(obj, word, user_answer):
     obj.after(0, lambda: _update_ui_after_grading(obj, user_answer, result, comment))
 
 def _give_marks(word, user_answer, language):
-    if 'client' not in globals():
-        global client
-        client = genai.Client(api_key=os.getenv('GEMINI_API'))
+    # if 'client' not in globals():
+    #     global client
+    #     client = genai.Client(api_key=os.getenv('GEMINI_API'))
 
-    contents = f'''
-        "english_word": {word},
-        "student's_answer": {user_answer}
-    '''
+    # contents = f'''
+    #     "english_word": {word},
+    #     "student's_answer": {user_answer}
+    # '''
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            config=types.GenerateContentConfig(
-                system_instruction=Gemini_instruction[language]),
-            contents=contents
-        )
-        result = response.text[0]
-        comment = response.text[1:].strip()
-        if result not in ['O', 'X', 'o', 'x']:
-            result = '-'
-            comment = Text_T.GEMINI_ERROR[language]
+    # try:
+    #     response = client.models.generate_content(
+    #         model="gemini-2.5-flash",
+    #         config=types.GenerateContentConfig(
+    #             system_instruction=Gemini_instruction[language]),
+    #         contents=contents
+    #     )
+    #     result = response.text[0]
+    #     comment = response.text[1:].strip()
+    #     if result not in ['O', 'X', 'o', 'x']:
+    #         result = '-'
+    #         comment = Text_T.GEMINI_ERROR[language]
 
-    except:
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash-lite",
-                config=types.GenerateContentConfig(
-                    system_instruction=Gemini_instruction[language]),
-                contents=contents
-            )
-            result = response.text[0]
-            comment = response.text[1:].strip()
-            if result not in ['O', 'X', 'o', 'x']:
-                result = '-'
-                comment = Text_T.GEMINI_ERROR[language]
+    # except:
+    #     try:
+    #         response = client.models.generate_content(
+    #             model="gemini-2.5-flash-lite",
+    #             config=types.GenerateContentConfig(
+    #                 system_instruction=Gemini_instruction[language]),
+    #             contents=contents
+    #         )
+    #         result = response.text[0]
+    #         comment = response.text[1:].strip()
+    #         if result not in ['O', 'X', 'o', 'x']:
+    #             result = '-'
+    #             comment = Text_T.GEMINI_ERROR[language]
 
-        except:
-            result = '-'
-            comment = Text_T.GEMINI_ERROR[language]
+    #     except:
+    #         result = '-'
+    #         comment = Text_T.GEMINI_ERROR[language]
 
-    return result, comment
+    # return result, comment
+
+    return 'x', 'yes'
 
 def _update_ui_after_grading(obj, user_answer, result, comment):
     # 결과에 따른 색 지정
@@ -737,6 +768,9 @@ def _return_current(obj):
 def finish_test(obj):
     # TODO: DB에 기록
 
+    obj.winfo_toplevel().unbind('<Return>')
+    obj.mean_ent.unbind('<Return>')
+
     wrong_date_list = []
     wrong_word_list = []
     wrong_user_answer_list = []
@@ -763,3 +797,21 @@ def show_wrong_word(obj, title_lbl):
     title_lbl.pack()
     obj.review_frm.place_forget()
     obj.check_frm.pack(expand=True)
+    show_next_word_result(obj)
+
+def show_next_word_result(obj):
+    obj.date_lbl.config(text=obj.date_list[obj.pointer])
+    obj.word_lbl.config(text=obj.word_list[obj.pointer])
+    obj.user_answer_lbl.config(text=obj.user_answer_list[obj.pointer])
+    obj.model_answer_lbl.config(text=obj.model_answer_list[obj.pointer])
+    obj.comment_lbl.config(text=obj.comment_list[obj.pointer])
+
+    obj.pointer += 1
+
+def click_word_lbl_result(obj, n):
+    if obj.pointer == n:
+        return
+    
+    obj.pointer = n
+
+    show_next_word_result(obj)
