@@ -809,6 +809,9 @@ class ResultFrame(tk.Frame):
         self.model_answer_list = model_answer_list
         self.comment_list = comment_list
         self.word_lbl_list = []
+        self.model_answer_lbl_list = []
+        self.user_answer_lbl_list = []
+        self.retry_word_list = []
 
     def create_widgets(self):
         body_frm = tk.Frame(self)
@@ -942,14 +945,24 @@ class ResultFrame(tk.Frame):
 
         # 버튼 프레임
         button_frm = tk.Frame(top_frm, bg=Color.DARK)
-        button_frm.pack(pady=(0, 25))
+        button_frm.pack(side='left', pady=(0, 25))
 
-        tk.Button(
+        self.next_btn = tk.Button(
             button_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_R.NEXT[self.language],
             command= lambda: logic.show_next_word_result(self)
-        ).pack(side='left')
-        retry_btn = tk.Button(
-            button_frm, bg=Color.GREEN, font=self.font.ENTRY, text=Text_T.NEXT[self.language]
+        )
+        self.next_btn.pack(side='left', padx=(410, 0))
+        chk = tk.BooleanVar()
+        self.retry_chk = tk.Checkbutton(
+            button_frm,
+            bg=Color.DARK,
+            font=self.font.TIP,
+            text=Text_R.RETRY[self.language],
+            activebackground=Color.DARK,
+            activeforeground=Color.FONT_DEFAULT,
+            selectcolor=Color.DARK,
+            variable=chk,
+            command=lambda: logic.click_retry_checkbox(self, chk.get())
         )
 
         # 아래쪽 프레임
@@ -957,9 +970,9 @@ class ResultFrame(tk.Frame):
         bottom_frm.pack(fill='x')
 
         # Canvas 생성: 스크롤 가능한 영역을 담는 컨테이너
-        self.canvas = tk.Canvas(bottom_frm, bg=Color.DEEP, highlightthickness=0, height=198)
+        self.canvas = tk.Canvas(bottom_frm, bg=Color.DEEP, highlightthickness=0, height=195)
         self.canvas.pack(side='left', fill='both', expand=True)
-        self.canvas.bind("<Configure>", lambda e: logic._resize_record_frame(self, e))
+        self.canvas.bind('<Configure>', lambda e: logic._resize_record_frame(self, e))
 
         # 수직 스크롤바 생성 및 Canvas와 연결
         scrollbar = tk.Scrollbar(bottom_frm, command=self.canvas.yview)
@@ -1013,7 +1026,6 @@ class ResultFrame(tk.Frame):
                 highlightthickness=5,
                 anchor='w'                
             )
-            lbl1.grid(row=i+1, column=0, sticky='ew')
             lbl2 = tk.Label(
                 self.record_frm,
                 bg=Color.DEEP,
@@ -1024,7 +1036,6 @@ class ResultFrame(tk.Frame):
                 highlightthickness=5,
                 anchor='w',
             )
-            lbl2.grid(row=i+1, column=1, sticky='ew')
             lbl3 = tk.Label(
                 self.record_frm,
                 text=self.user_answer_list[i],
@@ -1035,8 +1046,12 @@ class ResultFrame(tk.Frame):
                 highlightthickness=5,
                 anchor='w'
             )
+            lbl1.grid(row=i+1, column=0, sticky='ew')
+            lbl2.grid(row=i+1, column=1, sticky='ew')
             lbl3.grid(row=i+1, column=2, sticky='ew')
-
-
-            # lbl.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): click_word_lbl(obj, i))
-            # self.word_lbl_list.append(lbl)
+            self.word_lbl_list.append(lbl1)
+            self.model_answer_lbl_list.append(lbl2)
+            self.user_answer_lbl_list.append(lbl3)
+            lbl1.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): logic.click_word_lbl_result(self, i))
+            lbl2.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): logic.click_word_lbl_result(self, i))
+            lbl3.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): logic.click_word_lbl_result(self, i))

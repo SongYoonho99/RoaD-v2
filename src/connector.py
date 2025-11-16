@@ -272,3 +272,14 @@ def get_test_data(obj, username):
     else:
         obj.controller.show_overlay(response.json().get('message'))
         return False
+    
+# ==============================
+# set retry word
+# ==============================
+def _set_retry_word(payload):
+    URL = f'{base_URL}set_retry_word'
+    return _request_wrapper('post', URL, payload)
+
+def set_retry_word(obj):
+    payload = {'username': obj.username, 'retry_word_list': obj.retry_word_list}
+    response = _set_retry_word(payload)

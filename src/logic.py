@@ -1,6 +1,5 @@
 '''핵심 함수 및 유틸 함수 모음 모듈'''
 import re
-import math
 import socket
 import random
 import tkinter as tk
@@ -306,6 +305,30 @@ def animate_score(obj, label, score):
         label.after(delay, update)
 
     update()
+
+def click_retry_checkbox(obj, chk):
+    word = obj.word_lbl.cget('text')
+
+    if chk:
+        obj.retry_word_list.append(word)
+    else:
+        obj.retry_word_list.remove(word)
+
+def selected_scroll_widget_result(obj):
+    '''pointer가 가르키는 스크롤바 내 라벨색상을 DAKR, 그 외에는 DEEP'''
+    for i, (lbl1, lbl2, lbl3) in enumerate(zip(
+            obj.word_lbl_list,
+            obj.model_answer_lbl_list,
+            obj.user_answer_lbl_list)
+        ):
+        if i == obj.pointer:
+            lbl1.config(bg=Color.DARK, highlightbackground=Color.DARK)
+            lbl2.config(bg=Color.DARK, highlightbackground=Color.DARK)
+            lbl3.config(bg=Color.DARK, highlightbackground=Color.DARK)
+        else:
+            lbl1.config(bg=Color.DEEP, highlightbackground=Color.DEEP)
+            lbl2.config(bg=Color.DEEP, highlightbackground=Color.DEEP)
+            lbl3.config(bg=Color.DEEP, highlightbackground=Color.DEEP)
 
 # ==============================
 # 프로그램 로직 함수
@@ -799,19 +822,40 @@ def show_wrong_word(obj, title_lbl):
     obj.check_frm.pack(expand=True)
     show_next_word_result(obj)
 
-def show_next_word_result(obj):
+def show_next_word_result(obj, is_click_word_lbl=False):
+    # 프로그램 종료
+    if is_click_word_lbl is False and obj.next_btn.cget('text') == Text_R.QUIT_PROGRAM[obj.language]:
+        from connector import set_retry_word
+        set_retry_word(obj)
+        obj.winfo_toplevel().destroy()
+        return
+
     obj.date_lbl.config(text=obj.date_list[obj.pointer])
     obj.word_lbl.config(text=obj.word_list[obj.pointer])
     obj.user_answer_lbl.config(text=obj.user_answer_list[obj.pointer])
     obj.model_answer_lbl.config(text=obj.model_answer_list[obj.pointer])
     obj.comment_lbl.config(text=obj.comment_list[obj.pointer])
+    # 마지막 단어 조회의 경우 버튼텍스트를 "다음"에서 "종료"로 변경
+    if obj.pointer == len(obj.word_list) - 1:
+        obj.next_btn.config(text=Text_R.QUIT_PROGRAM[obj.language])
+    # 5번째 복습단어의 경우에만 체크박스 표시(ex. 11/08 에 외운 단어, 마지막복습)
+    if sum(c.isdigit() for c in obj.date_list[obj.pointer]) == 4:
+        obj.retry_chk.pack(side='left', padx=40)
+    else:
+        obj.retry_chk.pack_forget()
+
+    if is_click_word_lbl is False:
+        temp = (obj.pointer - 2) / (len(obj.word_list) + 1)
+        obj.record_frm.master.yview_moveto(temp)
+    selected_scroll_widget_result(obj)
 
     obj.pointer += 1
 
 def click_word_lbl_result(obj, n):
     if obj.pointer == n:
+        print(1)
         return
     
-    obj.pointer = n
+    obj.pointer = n - 1
 
-    show_next_word_result(obj)
+    show_next_word_result(obj, is_click_word_lbl=True)
