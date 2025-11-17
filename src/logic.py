@@ -827,14 +827,25 @@ def show_next_word_result(obj, is_click_word_lbl=False):
     if is_click_word_lbl is False and obj.next_btn.cget('text') == Text_R.QUIT_PROGRAM[obj.language]:
         from connector import set_retry_word
         set_retry_word(obj)
-        obj.winfo_toplevel().destroy()
         return
+
+    if is_click_word_lbl is False:
+        obj.pointer += 1
+
+        # 선택된 항목이 현재 화면에 보이지 않을 시 스크롤 이동
+        visible_min = max((obj.pointer - 2) / (len(obj.word_list) + 1), 0)
+        visible_max = min((obj.pointer + 1) / (len(obj.word_list) + 1), 1)
+        current_view, _ = obj.record_frm.master.yview()
+        if not (visible_min <= current_view <= visible_max):
+            obj.record_frm.master.yview_moveto(visible_min)
 
     obj.date_lbl.config(text=obj.date_list[obj.pointer])
     obj.word_lbl.config(text=obj.word_list[obj.pointer])
     obj.user_answer_lbl.config(text=obj.user_answer_list[obj.pointer])
     obj.model_answer_lbl.config(text=obj.model_answer_list[obj.pointer])
     obj.comment_lbl.config(text=obj.comment_list[obj.pointer])
+    selected_scroll_widget_result(obj)
+
     # 마지막 단어 조회의 경우 버튼텍스트를 "다음"에서 "종료"로 변경
     if obj.pointer == len(obj.word_list) - 1:
         obj.next_btn.config(text=Text_R.QUIT_PROGRAM[obj.language])
@@ -844,18 +855,9 @@ def show_next_word_result(obj, is_click_word_lbl=False):
     else:
         obj.retry_chk.pack_forget()
 
-    if is_click_word_lbl is False:
-        temp = (obj.pointer - 2) / (len(obj.word_list) + 1)
-        obj.record_frm.master.yview_moveto(temp)
-    selected_scroll_widget_result(obj)
-
-    obj.pointer += 1
-
 def click_word_lbl_result(obj, n):
     if obj.pointer == n:
-        print(1)
         return
     
-    obj.pointer = n - 1
-
+    obj.pointer = n
     show_next_word_result(obj, is_click_word_lbl=True)

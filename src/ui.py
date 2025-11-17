@@ -802,7 +802,7 @@ class ResultFrame(tk.Frame):
         self.language = language
         self.number_of_word = number_of_word
         self.font = Font_K if self.language == 'K' else Font_J
-        self.pointer = 0
+        self.pointer = -1
         self.date_list = date_list
         self.word_list = word_list
         self.user_answer_list = user_answer_list
@@ -1049,9 +1049,9 @@ class ResultFrame(tk.Frame):
             lbl1.grid(row=i+1, column=0, sticky='ew')
             lbl2.grid(row=i+1, column=1, sticky='ew')
             lbl3.grid(row=i+1, column=2, sticky='ew')
-            self.word_lbl_list.append(lbl1)
-            self.model_answer_lbl_list.append(lbl2)
-            self.user_answer_lbl_list.append(lbl3)
             lbl1.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): logic.click_word_lbl_result(self, i))
             lbl2.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): logic.click_word_lbl_result(self, i))
             lbl3.bind('<Button-1>', lambda e, i=len(self.word_lbl_list): logic.click_word_lbl_result(self, i))
+            self.word_lbl_list.append(lbl1)
+            self.model_answer_lbl_list.append(lbl2)
+            self.user_answer_lbl_list.append(lbl3)

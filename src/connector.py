@@ -283,3 +283,9 @@ def _set_retry_word(payload):
 def set_retry_word(obj):
     payload = {'username': obj.username, 'retry_word_list': obj.retry_word_list}
     response = _set_retry_word(payload)
+    if response is None:
+        obj.controller.show_overlay('Instance connection failure.')
+    elif response.status_code == 200:
+        obj.winfo_toplevel().destroy()
+    else:
+        obj.controller.show_overlay(response.json().get('message'))
