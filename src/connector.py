@@ -191,9 +191,9 @@ def login(obj, username):
         daily_frm.init_data(username, language, dayword, today_word, is_add_yourself, streak)
         daily_frm.create_widgets()
         obj.controller.show_frame('DailyFrame')
-        if not streak and not is_add_yourself:
+        if streak is False and not is_add_yourself:
             daily_frm.open_manual_window()
-        if not streak == -2 and is_add_yourself:
+        if streak is False and is_add_yourself:
             daily_frm.open_add_yourself_manual_window()
 
     elif response.status_code == 204:
@@ -231,6 +231,25 @@ def take_more_word(obj, message_lbl):
         return False
     
 # ==============================
+# get test data
+# ==============================
+def _get_test_data(payload):
+    URL = f'{base_URL}get_test_data'
+    return _request_wrapper('post', URL, payload)
+
+def get_test_data(obj, username):
+    payload = {'username': username}
+    response = _get_test_data(payload)
+    if response is None:
+        obj.controller.show_overlay('Instance connection failure.')
+        return False
+    elif response.status_code == 200:
+        return response.json()
+    else:
+        obj.controller.show_overlay(response.json().get('message'))
+        return False
+    
+# ==============================
 # write today word
 # ==============================
 def _write_today_word(payload):
@@ -255,24 +274,50 @@ def write_today_word(obj):
         return False
     
 # ==============================
-# get test data
+# write test data
 # ==============================
-def _get_test_data(payload):
-    URL = f'{base_URL}get_test_data'
+def _write_test_data(payload):
+    URL = f'{base_URL}write_test_data'
     return _request_wrapper('post', URL, payload)
 
-def get_test_data(obj, username):
-    payload = {'username': username}
-    response = _get_test_data(payload)
+def write_test_data(obj):
+    payload = {
+        'username': obj.username,
+        'test_word': obj.test_word,
+        'result_list': obj.result_list
+    }
+    response = _write_test_data(payload)
     if response is None:
         obj.controller.show_overlay('Instance connection failure.')
         return False
-    elif response.status_code == 200:
-        return response.json()
+    elif response.status_code == 201:
+        return True
     else:
         obj.controller.show_overlay(response.json().get('message'))
         return False
     
+# ==============================
+# write record
+# ==============================
+def _write_record(payload):
+    URL = f'{base_URL}write_record'
+    return _request_wrapper('post', URL, payload)
+
+def write_record(obj):
+    payload = {
+        'username': obj.username,
+        'streak': obj.streak
+    }
+    response = _write_record(payload)
+    if response is None:
+        obj.controller.show_overlay('Instance connection failure.')
+        return False
+    elif response.status_code == 200:
+        return True
+    else:
+        obj.controller.show_overlay(response.json().get('message'))
+        return False
+
 # ==============================
 # set retry word
 # ==============================

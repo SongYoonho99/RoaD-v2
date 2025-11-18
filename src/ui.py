@@ -274,11 +274,11 @@ class DailyFrame(tk.Frame):
         # 제목 라벨
         title_lbl = tk.Label(body_frm, font=self.font.BODY_BIG, anchor='w')
         logic.typing_effect(title_lbl, logic.select_streak_message(self.streak, self.language))
-        if self.streak is not True:
-            title_lbl.pack()
-        else: # 오늘 이미 했을 경우
+        if self.streak is True: # 오늘 이미 했을 경우
             title_lbl.pack(expand=True)
             return
+        else:
+            title_lbl.pack()
 
         # 중앙 프레임
         center_frm = tk.Frame(body_frm, bg=Color.DARK)
@@ -624,7 +624,7 @@ class TestFrame(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-    def init_data(self, username, language, is_add_yourself, streak, test_word):
+    def init_data(self, username, language, is_add_yourself, streak, test_word, today_confirm, already_know):
         self.username = username
         self.language = language
         self.font = Font_K if self.language == 'K' else Font_J
@@ -645,6 +645,8 @@ class TestFrame(tk.Frame):
         self.word_lbl_list = []         # record 프레임에 기록되는 라벨 리스트
         self.is_return_current = False  # 현재단어로 돌아갈때 상황별 처리를 위한 불 변수
         self.is_scoring = False         # 채점중일때 단어간 화면 전환 못하도록 하기 위한 변수
+        self.today_confirm = today_confirm
+        self.already_know = already_know
 
     def create_widgets(self):
         body_frm = tk.Frame(self)

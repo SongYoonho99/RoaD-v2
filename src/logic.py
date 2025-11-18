@@ -527,7 +527,7 @@ def start_test(
         obj, username, language, is_add_yourself, streak,
         lbl = None, window = None, is_exist_today_word = True
     ):
-    from connector import write_today_word, get_test_data
+    from connector import get_test_data
     
     if is_exist_today_word:
         if not all(btn['bg'] == Color.BEIGE for btn in obj.btn_list):
@@ -535,9 +535,6 @@ def start_test(
             return
 
         window.destroy()
-
-        if not write_today_word(obj):
-            return
         
     response = get_test_data(obj, username)
     if response is False:
@@ -554,7 +551,9 @@ def start_test(
         test_word += ['today'] + obj.today_confirm
 
     test_frm = obj.controller.frames['TestFrame']
-    test_frm.init_data(username, language, is_add_yourself, streak, test_word)
+    test_frm.init_data(
+        username, language, is_add_yourself, streak, test_word, obj.today_confirm, obj.already_know
+    )
     test_frm.create_widgets()
     show_next_word(test_frm)
     obj.controller.show_frame('TestFrame')
@@ -789,7 +788,13 @@ def _return_current(obj):
     selected_scroll_widget(obj)
 
 def finish_test(obj):
-    # TODO: DB에 기록
+    from connector import write_today_word, write_test_data, write_record
+    if write_today_word(obj) is False:
+        return
+    if write_test_data(obj) is False:
+        return
+    if write_record(obj) is False:
+        return
 
     obj.winfo_toplevel().unbind('<Return>')
     obj.mean_ent.unbind('<Return>')
